@@ -1,0 +1,9 @@
+# ignore
+.idea
+__pycache__
+**/.DS_Store
+moonlander pilot data
+kde_plots/*
+input_data/*
+eye_data/*
+.Rhistory
