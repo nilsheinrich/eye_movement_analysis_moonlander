@@ -3,6 +3,7 @@
 __pycache__
 **/.DS_Store
 moonlander pilot data
+.ipynb_checkpoints
 kde_plots/*
 input_data/*
 eye_data/*
