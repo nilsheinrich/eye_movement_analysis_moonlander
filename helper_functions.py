@@ -92,6 +92,13 @@ def pre_process_eye_data(eye_data):
     # adjust time tag to start at 0
     eye_data["time_tag"] = eye_data.TimeTag - eye_data.TimeTag[0]
 
+    # annotate binocular fixations
+    eye_data["Fixation"] = eye_data.LeftEyeFixationFlag + eye_data.RightEyeFixationFlag
+    # eliminate simultaneous blink and fixation (setting fixation to 0)
+    eye_data.Fixation.loc[eye_data.LeftBlink > 0.0] = 0.0
+    eye_data.Fixation.loc[eye_data.RightBlink > 0.0] = 0.0
+    eye_data.Fixation[eye_data.Fixation > 1] = 1.0
+
     # annotate binocular saccades
     eye_data["Saccade"] = eye_data.LeftEyeSaccadeFlag + eye_data.RightEyeSaccadeFlag
     # eliminate simultaneous blink and saccades (setting saccade to 0) #
@@ -112,7 +119,7 @@ def pre_process_eye_data(eye_data):
 
     # insert saccade direction column
     eye_data["saccade_direction"] = np.nan
-    eye_data = eye_data.groupby("N_saccade", group_keys=True).apply(calc_saccade_direction)
+    eye_data.groupby("N_saccade", group_keys=True).apply(calc_saccade_direction)
 
     return eye_data
 
