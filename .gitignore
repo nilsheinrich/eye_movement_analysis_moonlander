@@ -7,3 +7,4 @@ moonlander pilot data
 input_data/*
 eye_data/*
 .Rhistory
+.ipynb_checkpoints
