@@ -88,7 +88,6 @@ def pre_process_eye_data(eye_data):
     """
     annotate eye_tracking data
     """
-
     # adjust time tag to start at 0
     eye_data["time_tag"] = eye_data.TimeTag - eye_data.TimeTag[0]
 
@@ -101,10 +100,9 @@ def pre_process_eye_data(eye_data):
 
     # annotate binocular saccades
     eye_data["Saccade"] = eye_data.LeftEyeSaccadeFlag + eye_data.RightEyeSaccadeFlag
-    # eliminate simultaneous blink and saccades (setting saccade to 0) #
+    # eliminate simultaneous blink and saccades (setting saccade to 0)
     eye_data.Saccade.loc[eye_data.LeftBlink > 0.0] = 0.0
     eye_data.Saccade.loc[eye_data.RightBlink > 0.0] = 0.0
-
     eye_data.Saccade[eye_data.Saccade > 1] = 1.0
 
     # condition for initiating saccade
@@ -119,9 +117,17 @@ def pre_process_eye_data(eye_data):
 
     # insert saccade direction column
     eye_data["saccade_direction"] = np.nan
-    eye_data.groupby("N_saccade", group_keys=True).apply(calc_saccade_direction)
+    eye_data["saccade_amplitude"] = np.nan
+    out = eye_data.groupby("N_saccade", dropna=False).apply(calc_saccade_direction)
 
-    return eye_data
+    # set saccade direction to NaN everywhere where there is no saccade
+    out.loc[eye_data.Saccade < 1.0, "saccade_direction"] = np.nan
+
+    # sum up left and right eye positions to converging eye position in x and y dimension
+    out["converging_eye_x"] = out.apply(lambda row: (row.LeftEyeX + row.RightEyeX) / 2, axis=1)
+    out["converging_eye_y"] = out.apply(lambda row: (row.LeftEyeY + row.RightEyeY) / 2, axis=1)
+
+    return out
 
 
 def point_estimate(data):
