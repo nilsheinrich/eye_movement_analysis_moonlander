@@ -2,7 +2,7 @@
 .idea
 __pycache__
 **/.DS_Store
-kde_plots/*
+plots/*
 moonlander pilot data
 input_data/*
 eye_data/*
