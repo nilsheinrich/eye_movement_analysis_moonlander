@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 # import seaborn as sns
@@ -148,7 +149,7 @@ def point_estimate(data):
     return point_estimate_x, point_estimate_y, hdi[0], hdi[1]
 
 
-def plot_kde_combined(code="pilot4", n_run=0, safe_plot=True):
+def plot_kde_combined(code="pilot4", n_run=0, include_progressive_saccades=True, safe_plot=True):
     # load data (with input data being button presses and eye data being eye tracking output)
     input_data = pd.read_csv(f'input_data/{code}_output_{n_run:0>2}.csv', index_col=False)
     input_data = pre_process_input_data(input_data)
@@ -186,8 +187,7 @@ def plot_kde_combined(code="pilot4", n_run=0, safe_plot=True):
     # Grid
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.set_title(
-        f"Densities of events for trial {inputs.iloc[0].trial} (drift enabled = {inputs.iloc[0].drift_enabled}, input noise = {inputs.iloc[0].input_noise_magnitude}, crashed = {input_data.iloc[-1].collision})",
-        fontdict={"fontweight": "bold"})
+        f"Densities of events for trial {inputs.iloc[0].trial} (drift enabled = {inputs.iloc[0].drift_enabled}, input noise = {inputs.iloc[0].input_noise_magnitude}, crashed = {input_data.iloc[-1].collision})", fontdict={"fontweight": "bold"})
 
     # axis labels
     ax.set_xlabel("Time played")
@@ -199,7 +199,7 @@ def plot_kde_combined(code="pilot4", n_run=0, safe_plot=True):
     ax.set_xticks(xaxis)
 
     # Plotting
-    colors = ["crimson", "limegreen"]
+    colors = ["crimson", "limegreen", "royalblue"]
 
     ax.plot(kde_init, input_data_kde(kde_init), color=colors[0], label='input data')
     # ax.fill_between(kde_init, input_data_kde(kde_init), step="mid", alpha=0.3, color=colors[0])
@@ -223,8 +223,35 @@ def plot_kde_combined(code="pilot4", n_run=0, safe_plot=True):
     # ax.axvspan(point_estimate_eye_data[2], point_estimate_eye_data[3], alpha=0.3, color=colors[1])
     plt.vlines(point_estimate_eye_data[0], ymin=0, ymax=point_estimate_eye_data[1], color=colors[1])
 
+    # progressive saccades?
+    while include_progressive_saccades:
+        progressive_saccades = saccades.loc[saccades["saccade_direction_y"] >= 0]
+        progressive_eye_data_array = np.asarray(progressive_saccades.time_tag)
+
+        # early exit out of while loop
+        if len(progressive_eye_data_array) <= 1:
+            include_progressive_saccades = False
+            break
+
+        progressive_eye_data_hpdi_bounds = az.hdi(progressive_eye_data_array, 0.25)
+        progressive_eye_data_kde = st.gaussian_kde(progressive_eye_data_array)
+        ax.plot(kde_init, progressive_eye_data_kde(kde_init), color=colors[2], label='progressive eye movement data')
+
+        progressive_eye_data_points = {'x': progressive_eye_data_array,
+                                       'y': [y_max / 99] * len(progressive_eye_data_array)}
+        progressive_eye_data_points = pd.DataFrame(data=progressive_eye_data_points)
+        ax.scatter(progressive_eye_data_points.x, progressive_eye_data_points.y, marker=".", color=colors[2])
+
+        point_estimate_progressive_eye_data = point_estimate(progressive_saccades.time_tag)
+        plt.vlines(point_estimate_progressive_eye_data[0], ymin=0, ymax=point_estimate_progressive_eye_data[1],
+                   color=colors[2])
+
+        # get out of the while loop
+        include_progressive_saccades = False
+
     ax.legend()
 
     if safe_plot:
-        plt.savefig(f"kde_plots/Event densities trial {inputs.iloc[0].trial} run {n_run}", dpi=300)
+        plt.savefig(
+            f"{os.getcwd()}/plots/kde_plots_event_distribution/Event densities trial {inputs.iloc[0].trial} run {n_run}", dpi=300)
     plt.close()
