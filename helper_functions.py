@@ -142,7 +142,7 @@ def pre_process_eye_data(eye_data, screen_width_in_mm=595, screen_height_in_mm=3
     eye_data["saccade_direction_x"] = np.nan
     eye_data["saccade_direction_y"] = np.nan
     eye_data["saccade_amplitude"] = np.nan
-    out = eye_data.groupby("N_saccade", dropna=False).apply(calc_saccade_direction)
+    out = eye_data.groupby("N_saccade", dropna=False, group_keys=False).apply(calc_saccade_direction)
 
     # convert saccade amplitude from pixels to visual angle (°)
     # eye_data["saccade_amplitude_visual_angle"] =

@@ -1,5 +1,5 @@
 import numpy as np
-from helper_functions import plot_kde_combined
+from plotting_functions import plot_kde_combined
 
 
 N_run = 1
