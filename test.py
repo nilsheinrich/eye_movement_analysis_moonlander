@@ -2,12 +2,27 @@ import math
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 from helper_functions import pre_process_input_data, pre_process_eye_data, point_estimate
 from matplotlib.animation import FuncAnimation
 # bad practice but let's suppress warnings
 import warnings
 warnings.filterwarnings("ignore")
 
+
+# visualization parameters
+scaling = 18
+edge = 34*scaling
+
+observation_space_x = 40*scaling
+
+bottom_edge = 15
+observation_space_y = (60 - bottom_edge)*scaling
+
+obstacle_size = 2*scaling
+agent_size_x, agent_size_y = 2*scaling, 2*scaling
+
+# drift_range = 15*scaling
 
 # data
 code = "pilot4"
@@ -31,24 +46,12 @@ eye_data_ = eye_data[eye_data.time_tag.between(start_time, end_time)]
 factor = math.floor(len(eye_data_) / len(input_data_))
 
 # adjust eye-tracking coordinates by fixed factor
-eye_data_["converging_eye_x_adjusted"] = eye_data_.converging_eye_x + 954
-eye_data_["converging_eye_y_adjusted"] = eye_data_.converging_eye_y + 27
+eye_data_["converging_eye_x_adjusted"] = eye_data_.converging_eye_x + 960
+eye_data_["converging_eye_y_adjusted"] = eye_data_.converging_eye_y.apply(lambda x: x*(-1)+540)
 
 # eliminate nans by replacing with preceeding value
 eye_data_.converging_eye_x_adjusted.fillna(method='ffill', inplace=True)
 eye_data_.converging_eye_y_adjusted.fillna(method='ffill', inplace=True)
-
-# visualization parameters
-scaling = 18
-edge = 34*scaling
-
-observation_space_x = 40*scaling
-
-bottom_edge = 15
-observation_space_y = (60 - bottom_edge)*scaling
-
-obstacle_size = 2*scaling
-agent_size_x, agent_size_y = 2*scaling, 2*scaling
 
 
 fig, ax = plt.subplots(figsize=(8, 9))
@@ -67,6 +70,9 @@ def animate_frame(i):
     plt.cla()
     ax.set_xlim((edge, observation_space_x + edge))
     ax.set_ylim(observation_space_y)
+    # hide axes
+    ax.xaxis.set_major_locator(ticker.NullLocator())
+    ax.yaxis.set_major_locator(ticker.NullLocator())
 
     # input keys
     current_input = input_data_.current_input.iloc[i]  # nan vs. "Left" vs. "Right"
