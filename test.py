@@ -45,10 +45,6 @@ eye_data_ = eye_data[eye_data.time_tag.between(start_time, end_time)]
 
 factor = math.floor(len(eye_data_) / len(input_data_))
 
-# adjust eye-tracking coordinates by fixed factor
-eye_data_["converging_eye_x_adjusted"] = eye_data_.converging_eye_x + 960
-eye_data_["converging_eye_y_adjusted"] = eye_data_.converging_eye_y.apply(lambda x: x*(-1)+540)
-
 # eliminate nans by replacing with preceeding value
 eye_data_.converging_eye_x_adjusted.fillna(method='ffill', inplace=True)
 eye_data_.converging_eye_y_adjusted.fillna(method='ffill', inplace=True)

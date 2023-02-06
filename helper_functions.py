@@ -108,6 +108,7 @@ def pre_process_eye_data(eye_data, screen_width_in_mm=595, screen_height_in_mm=3
     dataframe must be pandas dataFrame with appropriate columns...
     """
 
+    # annotate eye_tracking data
     # calc how many pixels are within 1 mm on screen
     pixels_in_mm = ((pixels_width / screen_width_in_mm) + (pixels_height / screen_height_in_mm)) / 2
 
@@ -142,7 +143,7 @@ def pre_process_eye_data(eye_data, screen_width_in_mm=595, screen_height_in_mm=3
     eye_data["saccade_direction_x"] = np.nan
     eye_data["saccade_direction_y"] = np.nan
     eye_data["saccade_amplitude"] = np.nan
-    out = eye_data.groupby("N_saccade", dropna=False, group_keys=False).apply(calc_saccade_direction)
+    out = eye_data.groupby("N_saccade", dropna=False).apply(calc_saccade_direction)
 
     # convert saccade amplitude from pixels to visual angle (°)
     # eye_data["saccade_amplitude_visual_angle"] =
@@ -153,6 +154,10 @@ def pre_process_eye_data(eye_data, screen_width_in_mm=595, screen_height_in_mm=3
     # sum up left and right eye positions to converging eye position in x and y dimension
     out["converging_eye_x"] = out.apply(lambda row: (row.LeftEyeX + row.RightEyeX) / 2, axis=1)
     out["converging_eye_y"] = out.apply(lambda row: (row.LeftEyeY + row.RightEyeY) / 2, axis=1)
+
+    # adjust eye-tracking coordinates by fixed factor
+    out["converging_eye_x_adjusted"] = out.converging_eye_x + 960
+    out["converging_eye_y_adjusted"] = out.converging_eye_y.apply(lambda x: x * (-1) + 540)
 
     return out
 
