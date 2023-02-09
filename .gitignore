@@ -4,6 +4,7 @@ __pycache__
 **/.DS_Store
 plots/*
 moonlander pilot data
+experimental_data/*
 input_data/*
 eye_data/*
 .Rhistory
