@@ -25,7 +25,6 @@ def pre_process_input_data(dataframe):
 
     # input can be either None, "Right", "Left"
     rows_with_input = dataframe[~dataframe["current_input"].isnull()][["frame"]]
-    # subsetting columns
 
     # condition for start input
     cond = rows_with_input.frame - rows_with_input.frame.shift(1) >= 2
@@ -75,6 +74,18 @@ def pre_process_input_data(dataframe):
     return dataframe
 
 
+def calc_fixation_duration(fixation_rows):
+    """
+    Need to be given pandas dataframe grouped by N_fixation.
+    Dataframe must have columns of TimeTag (VPixx generated data).
+    Returned dataframe now holds fixation duration.
+    """
+
+    fixation_rows.fixation_duration = fixation_rows.iloc[-1].TimeTag - fixation_rows.iloc[0].TimeTag
+
+    return fixation_rows
+
+
 def calc_saccade_direction(saccade_rows):
     """
     Need to be given pandas dataframe grouped by N_saccade.
@@ -108,7 +119,6 @@ def pre_process_eye_data(eye_data, screen_width_in_mm=595, screen_height_in_mm=3
     dataframe must be pandas dataFrame with appropriate columns...
     """
 
-    # annotate eye_tracking data
     # calc how many pixels are within 1 mm on screen
     pixels_in_mm = ((pixels_width / screen_width_in_mm) + (pixels_height / screen_height_in_mm)) / 2
 
@@ -117,14 +127,31 @@ def pre_process_eye_data(eye_data, screen_width_in_mm=595, screen_height_in_mm=3
 
     # annotate binocular fixations
     eye_data["Fixation"] = eye_data.LeftEyeFixationFlag + eye_data.RightEyeFixationFlag
-    ## eliminate simultaneous blink and fixation (setting fixation to 0)
+    # eliminate simultaneous blink and fixation (setting fixation to 0)
     eye_data.Fixation.loc[eye_data.LeftBlink > 0.0] = 0.0
     eye_data.Fixation.loc[eye_data.RightBlink > 0.0] = 0.0
     eye_data.Fixation[eye_data.Fixation > 1] = 1.0
 
+    # condition for initiating fixation
+    cond = (eye_data.Fixation >= 1.0) & (eye_data.Fixation.shift(1) == 0.0)
+
+    # have =1 everywhere condition applies and =0 where not
+    eye_data["fixationOnset"] = np.where(cond, 1, 0)
+
+    # insert N_fixation - counting up fixations
+    eye_data["N_fixation"] = (eye_data["fixationOnset"] == 1).cumsum()
+    eye_data.loc[eye_data.Fixation < 1.0, "N_fixation"] = np.nan  # have NaN everywhere where there is no fixation
+
+    # annotate fixation duration
+    eye_data["fixation_duration"] = np.nan
+    eye_data = eye_data.groupby("N_fixation", dropna=False).apply(calc_fixation_duration)
+
+    # flag fixations and saccades aiming within game boarders
+    # in (edge*scaling, (edge+observation_space_x)*scaling)
+
     # annotate binocular saccades
     eye_data["Saccade"] = eye_data.LeftEyeSaccadeFlag + eye_data.RightEyeSaccadeFlag
-    ## eliminate simultaneous blink and saccades (setting saccade to 0)
+    # eliminate simultaneous blink and saccades (setting saccade to 0)
     eye_data.Saccade.loc[eye_data.LeftBlink > 0.0] = 0.0
     eye_data.Saccade.loc[eye_data.RightBlink > 0.0] = 0.0
     eye_data.Saccade[eye_data.Saccade > 1] = 1.0

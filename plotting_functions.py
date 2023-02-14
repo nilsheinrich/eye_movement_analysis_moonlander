@@ -29,7 +29,8 @@ def plot_kde_combined(input_data, eye_data, include_progressive_saccades=True, s
 
     # plot boundaries:
     lbound = 0
-    ubound = input_data.iloc[-2].time_played  # second last row because last row is written to df AFTER SoC response given which may take time
+    ubound = input_data.iloc[
+        -2].time_played  # second last row because last row is written to df AFTER SoC response given which may take time
 
     # instatiate KDEs
     kde_init = np.linspace(lbound, ubound, 100)
@@ -107,12 +108,13 @@ def plot_kde_combined(input_data, eye_data, include_progressive_saccades=True, s
     ax.legend()
 
     if safe_plot:
-        plt.savefig(
-            f"{os.getcwd()}/plots/kde_plots_event_distribution/Event_densities_trial {inputs.iloc[0].trial}", dpi=300)
+        plt.savefig(f"{os.getcwd()}/plots/kde_plots_event_distribution/Event densities trial {inputs.iloc[0].trial}",
+                    dpi=300)
         plt.close()
 
 
-def plot_fixation_location_kde(eye_data_none, eye_data_weak, eye_data_strong, level=1, drift_enabled=False, safe_plot=False,
+def plot_fixation_location_kde(eye_data_none, eye_data_weak, eye_data_strong, level=1, drift_enabled=False,
+                               safe_plot=False,
                                path_to_save_folder=f"{os.getcwd()}/plots/kde_plots_fixation_locations/"):
     """
     :param eye_data_none: data of onput noise = nan
@@ -146,7 +148,10 @@ def plot_fixation_location_kde(eye_data_none, eye_data_weak, eye_data_strong, le
         ax.set_xlim([-300, 300])
         ax.set_ylim([-600, 600])
 
-        fixations = eye_data[eye_data["Fixation"] == 1.0]
+        fixations = eye_data[eye_data["fixationOnset"] == 1.0]
+        # check for fixation within game boarders
+        fixations = fixations[fixations["converging_eye_x_adjusted"].between((34 * 18), ((34 + 40) * 18))]
+        # edge=34, scaling=18, observation_space_x=40
 
         heatmap = sns.kdeplot(x=fixations.converging_eye_x,
                               y=fixations.converging_eye_y,
@@ -191,13 +196,14 @@ def plot_eye_rest_y_over_time(eye_data_none, eye_data_weak, eye_data_strong, inp
     drift_enabled = input_data.iloc[-1].drift_enabled
 
     fig, ax = plt.subplots(figsize=(12, 6))
-    ax.set_title(f"eye resting y positions; level = {level}, drift_enabled = {drift_enabled}", fontdict={"fontweight": "bold"})
+    ax.set_title(f"eye resting y positions; level = {level}, drift_enabled = {drift_enabled}",
+                 fontdict={"fontweight": "bold"})
 
     # axis labels
     ax.set_xlabel("time_played")
     ax.set_ylabel("observation space y")
 
-    # ax.set_ylim([-70, 70])
+    ax.set_ylim([-200, 500])
 
     # plt.gca().invert_yaxis()
 
@@ -239,7 +245,8 @@ def plot_eye_rest_y_over_time(eye_data_none, eye_data_weak, eye_data_strong, inp
         plt.close()
 
 
-def plot_saccade_amplitudes(eye_data_none, eye_data_weak, eye_data_strong, level, drift_enabled, safe_plot=False,
+def plot_saccade_amplitudes(eye_data_none, eye_data_weak, eye_data_strong, level, drift_enabled,
+                            only_progressive_saccades=True, safe_plot=False,
                             path_to_save_folder=f"{os.getcwd()}/plots/plots_saccade_amplitude/"):
     """
     :param eye_data_none: data of onput noise = nan
@@ -276,8 +283,10 @@ def plot_saccade_amplitudes(eye_data_none, eye_data_weak, eye_data_strong, level
     counter = 0
 
     for eye_data in [eye_data_none, eye_data_weak, eye_data_strong]:
+
         # all kinds of saccades
-        saccades = eye_data[eye_data["saccadeOnset"] >= 1]
+        # only consider the ones whichs amplitude is below 800 (arbitrary chosen - saccades out of screen)
+        saccades = eye_data[(eye_data["saccadeOnset"] >= 1) & (eye_data.saccade_amplitude < 800)]
         n_saccades[counter] = len(saccades)
         plot_labels = [offset[counter]] * len(saccades)
         saccades["plot_label"] = [offset[counter]] * len(saccades)
@@ -286,8 +295,10 @@ def plot_saccade_amplitudes(eye_data_none, eye_data_weak, eye_data_strong, level
         n_progressive_saccades[counter] = len(progressive_saccades)
 
         # draw on canvas
-        ax.scatter(saccades.plot_label, saccades.saccade_amplitude, marker=".", color=colors[counter], alpha=0.3)
-        ax.plot(offset[counter], np.mean(saccades.saccade_amplitude), marker=0, markersize=10, color=colors[counter], alpha=1.0)
+        if not only_progressive_saccades:
+            ax.scatter(saccades.plot_label, saccades.saccade_amplitude, marker=".", color=colors[counter], alpha=0.3)
+            ax.plot(offset[counter], np.mean(saccades.saccade_amplitude), marker=0, markersize=10,
+                    color=colors[counter], alpha=1.0)
 
         ax.scatter(progressive_saccades.plot_label, progressive_saccades.saccade_amplitude, marker=".",
                    color=colors_p[counter], alpha=0.3)
@@ -358,8 +369,10 @@ def plot_saccade_vectors(eye_data_none, eye_data_weak, eye_data_strong, level, d
         for saccade in np.arange(len(progressive_saccades)):
             saccade_launch_site = [progressive_saccades.iloc[saccade].converging_eye_x,
                                    progressive_saccades.iloc[saccade].converging_eye_y]
-            saccade_landing_site = [progressive_saccades.iloc[saccade].converging_eye_x + progressive_saccades.iloc[saccade].saccade_direction_x,
-                                    progressive_saccades.iloc[saccade].converging_eye_y + progressive_saccades.iloc[saccade].saccade_direction_y]
+            saccade_landing_site = [progressive_saccades.iloc[saccade].converging_eye_x + progressive_saccades.iloc[
+                saccade].saccade_direction_x,
+                                    progressive_saccades.iloc[saccade].converging_eye_y + progressive_saccades.iloc[
+                                        saccade].saccade_direction_y]
 
             x_pos = [saccade_launch_site[0], saccade_landing_site[0]]
             y_pos = [saccade_launch_site[1], saccade_landing_site[1]]
@@ -384,7 +397,8 @@ def plot_saccade_vectors(eye_data_none, eye_data_weak, eye_data_strong, level, d
         plt.close()
 
 
-def plot_saccade_landing_sites(eye_data_none, eye_data_weak, eye_data_strong, level, drift_enabled, safe_plot=False,
+def plot_saccade_landing_sites(eye_data_none, eye_data_weak, eye_data_strong, level, drift_enabled,
+                               regressive_saccades=False, safe_plot=False,
                                path_to_save_folder=f"{os.getcwd()}/plots/plots_saccade_landing_site/"):
     """
     :param eye_data_none: data of onput noise = nan
@@ -392,13 +406,18 @@ def plot_saccade_landing_sites(eye_data_none, eye_data_weak, eye_data_strong, le
     :param eye_data_strong: data of onput noise = strong
     :param level: level played
     :param drift_enabled: True vs. False
+    :param regressive_saccades: True vs. False; if True regressive saccades are targeted else progressive saccades
     :param safe_plot: True vs. False - determines whether plots are saved or not
     :param path_to_save_folder: path to the folder in which plots are saved in case of safe_plot=True
     IMPORTANT: The function will not raise an error if the runs aren't of the same level and drift condition. It will only consider level and drift passed for labeling
     """
+    if regressive_saccades:
+        saccade_type = "regressive_saccades"
+    else:
+        saccade_type = "progressive_saccades"
 
     fig, axs = plt.subplots(1, 3, figsize=(12, 6))  # 3 subplots
-    fig.suptitle(f"saccade landing sites; level {level}, drift_enabled = {drift_enabled}")
+    fig.suptitle(f"saccade landing sites - {saccade_type}; level {level}, drift_enabled = {drift_enabled}")
 
     fig.supxlabel("observation space x")
     fig.supylabel("observation space y")
@@ -409,47 +428,164 @@ def plot_saccade_landing_sites(eye_data_none, eye_data_weak, eye_data_strong, le
     color_maps = ["Reds", "Greens", "Blues"]
     input_noise_magnitude = ["NaN", "weak", "strong"]
     n_saccades = [np.nan, np.nan, np.nan]
-    n_progressive_saccades = [np.nan, np.nan, np.nan]
+    n_target_saccades = [np.nan, np.nan, np.nan]
 
     counter = 0
 
     for eye_data, ax in zip([eye_data_none, eye_data_weak, eye_data_strong], axs.ravel()):
+
         # axis labels
         ax.set_xlabel(" ")
         ax.set_ylabel(" ")
 
-        ax.set_xlim([-1000, 1000])
-        ax.set_ylim([-600, 400])
+        ax.set_xlim([-1500, 1500])
+        ax.set_ylim([-800, 400])
 
         # all kinds of saccades
         saccades = eye_data[eye_data["saccadeOnset"] >= 1]
         n_saccades[counter] = len(saccades)
-        # progressive saccades
-        progressive_saccades = saccades.loc[saccades["saccade_direction_y"] <= 0]
-        n_progressive_saccades[counter] = len(progressive_saccades)
-        ## insert saccade landing sites
-        progressive_saccades["saccade_landing_site_x"] = progressive_saccades.converging_eye_x + progressive_saccades.saccade_direction_x
-        progressive_saccades["saccade_landing_site_y"] = progressive_saccades.converging_eye_y + progressive_saccades.saccade_direction_y
+        # subset target saccades
+        if regressive_saccades:
+            target_saccades = saccades.loc[saccades["saccade_direction_y"] >= 0]
+        else:
+            target_saccades = saccades.loc[saccades["saccade_direction_y"] < 0]
+        n_target_saccades[counter] = len(target_saccades)
+        # insert saccade landing sites
+        target_saccades["saccade_landing_site_x"] = target_saccades.converging_eye_x + target_saccades.saccade_direction_x
+        target_saccades["saccade_landing_site_y"] = target_saccades.converging_eye_y + target_saccades.saccade_direction_y
+
+        # filter for landing sites within level
+        target_saccades = target_saccades[
+            target_saccades["saccade_landing_site_x"].between(((34 - 20) * 18), ((34 + 40 + 20) * 18))]
+        # edge=34, scaling=18, observation_space_x=40
 
         # draw on canvas
-        heatmap = sns.kdeplot(x=progressive_saccades.saccade_landing_site_x,
-                              y=progressive_saccades.saccade_landing_site_y,
+        heatmap = sns.kdeplot(x=target_saccades.saccade_landing_site_x,
+                              y=target_saccades.saccade_landing_site_y,
                               cmap=color_maps[counter],
                               shade=True,
                               alpha=0.9,
                               bw_adjust=0.4,
                               ax=ax)
 
+        # y_coord = point_estimate(progressive_saccades.saccade_landing_site_y)[0]
+        # ax.axhline(y_coord, color=colors[counter])
+        # x_coord = point_estimate(progressive_saccades.saccade_landing_site_x)[0]
+        # ax.axvline(x_coord, color=colors[counter])
+
         counter += 1
 
     handles = [mpatches.Patch(facecolor=plt.cm.Reds(100),
-                              label=[input_noise_magnitude[0], n_progressive_saccades[0], n_saccades[0]]),
+                              label=[input_noise_magnitude[0], n_target_saccades[0], n_saccades[0]]),
                mpatches.Patch(facecolor=plt.cm.Greens(100),
-                              label=[input_noise_magnitude[1], n_progressive_saccades[1], n_saccades[1]]),
+                              label=[input_noise_magnitude[1], n_target_saccades[1], n_saccades[1]]),
                mpatches.Patch(facecolor=plt.cm.Blues(100),
-                              label=[input_noise_magnitude[2], n_progressive_saccades[2], n_saccades[2]])]
+                              label=[input_noise_magnitude[2], n_target_saccades[2], n_saccades[2]])]
     fig.legend(handles=handles, loc='upper right', bbox_to_anchor=(0.98, 0.9), framealpha=1.0)
 
     if safe_plot:
-        plt.savefig(f"{path_to_save_folder}saccade_landing_site_level_{level}_drift_enabled_{drift_enabled}", dpi=300)
+        plt.savefig(
+            f"{path_to_save_folder}saccade_landing_site_{saccade_type}_level_{level}_drift_enabled_{drift_enabled}",
+            dpi=300)
         plt.close()
+
+
+def plot_saccade_amplitude_kde(eye_data_none, eye_data_weak, eye_data_strong, level, drift_enabled,
+                               regressive_saccades=False, safe_plot=False,
+                               path_to_save_folder=f"{os.getcwd()}/plots/plots_saccade_amplitude_kde/"):
+    """
+    :param eye_data_none: data of onput noise = nan
+    :param eye_data_weak: data of onput noise = weak
+    :param eye_data_strong: data of onput noise = strong
+    :param level: level played
+    :param drift_enabled: True vs. False
+    :param regressive_saccades: True vs. False; if True regressive saccades are targeted else progressive saccades
+    :param safe_plot: True vs. False - determines whether plots are saved or not
+    :param path_to_save_folder: path to the folder in which plots are saved in case of safe_plot=True
+    IMPORTANT: The function will not raise an error if the runs aren't of the same level and drift condition. It will only consider level and drift passed for labeling
+    """
+    if regressive_saccades:
+        saccade_type = "regressive_saccades"
+    else:
+        saccade_type = "progressive_saccades"
+    # Grid
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.set_title(f"Densities of saccade amplitudes - {saccade_type}; level {level} (drift enabled = {drift_enabled})",
+                 fontdict={"fontweight": "bold"})
+
+    # axis labels
+    ax.set_xlabel("saccade amplitude")
+    ax.set_ylabel("Density")
+
+    # plot boundaries:
+    lbound = 0
+    ubound = 1000
+
+    ax.set_xlim([lbound, ubound])
+
+    xaxis = np.linspace(lbound, ubound, 11)
+    ax.set_xticks(xaxis)
+
+    # Plotting parameters
+    colors = ["coral", "lightgreen", "royalblue"]
+    colors_p = ["crimson", "green", "blue"]
+    color_maps = ["Reds", "Greens", "Blues"]
+    input_noise_magnitude = ["NaN", "weak", "strong"]
+    n_saccades = [np.nan, np.nan, np.nan]
+    n_target_saccades = [np.nan, np.nan, np.nan]
+
+    counter = 0
+
+    for temp_eye_data in [eye_data_none, eye_data_weak, eye_data_strong]:
+        # reducing data to only respective events of interest (saccade onsets) & filter enormous saccade amplitudes
+        saccades = temp_eye_data[(temp_eye_data["saccadeOnset"] == 1.0) & (temp_eye_data["saccade_amplitude"] < 1000)]
+
+        # subset target saccades
+        if regressive_saccades:
+            saccades = saccades.loc[saccades["saccade_direction_y"] >= 0]
+        else:
+            saccades = saccades.loc[saccades["saccade_direction_y"] < 0]
+
+        n_saccades[counter] = len(saccades)
+        ## insert saccade landing sites
+        saccades["saccade_landing_site_x"] = saccades.converging_eye_x + saccades.saccade_direction_x
+        saccades["saccade_landing_site_y"] = saccades.converging_eye_y + saccades.saccade_direction_y
+
+        # filter for landing sites within level
+        saccades = saccades[saccades["saccade_landing_site_x"].between(((34 - 20) * 18), ((34 + 40 + 20) * 18))]
+        # edge=34, scaling=18, observation_space_x=40
+
+        # define arrays of saccade amplitudes for respective data
+        eye_data_array = np.asarray(saccades.saccade_amplitude)
+
+        # compute hpdi (I went for the smallest interval which contains 25% of the mass)
+        eye_data_hpdi_bounds = az.hdi(eye_data_array, 0.25)
+
+        # instatiate KDEs
+        kde_init = np.linspace(lbound, ubound, 100)
+
+        eye_data_kde = st.gaussian_kde(eye_data_array)
+
+        # draw KDE
+
+        ax.plot(kde_init, eye_data_kde(kde_init), color=colors[counter], label=input_noise_magnitude[counter])
+
+        # define dataframe for points of eye_data ( now because we can retrieve y-axis limits at this point)
+        # y_max = ax.get_ylim()[1]  # 0: bottom; 1: top
+        # eye_data_points = {'x': eye_data_array, 'y': [y_max/99]*len(eye_data_array)}  # y_max/99 to plot these a bit above input data points
+        # eye_data_points = pd.DataFrame(data=eye_data_points)
+        # ax.scatter(eye_data_points.x, eye_data_points.y, marker=".", color=colors[counter])
+
+        # HPDIs:
+        point_estimate_eye_data = point_estimate(saccades.time_tag)
+        # plt.vlines(point_estimate_eye_data[0], ymin=0, ymax=point_estimate_eye_data[1], color=colors[counter])
+
+        counter += 1
+
+    ax.legend()
+
+    if safe_plot:
+        plt.savefig(
+            f"{path_to_save_folder}saccade_amplitude_kde_{saccade_type}_level_{level}_drift_enabled_{drift_enabled}",
+            dpi=300)
+    plt.close()
