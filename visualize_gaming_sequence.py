@@ -52,12 +52,9 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, scaling=1
     drift_size = drift_size * scaling
     agent_size_x, agent_size_y = agent_size_x * scaling, agent_size_y * scaling
 
-    # drift_range = 15*scaling
-
     # subset data by given time interval
     input_data_ = input_data[input_data.time_played.between(start_time, end_time)]
     eye_data_ = eye_data[eye_data.time_tag.between(start_time, end_time)]
-    print(len(eye_data_), len(input_data_))
     factor = math.floor(len(eye_data_) / len(input_data_))
 
     # eliminate nans by replacing with preceeding value

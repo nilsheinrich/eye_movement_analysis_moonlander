@@ -7,9 +7,9 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 def pre_process_input_data(dataframe):
-    """
+    '''
     dataframe must be pandas dataFrame with appropriate columns...
-    """
+    '''
 
     dataframe.rename(columns={'Unnamed: 0': 'frame'}, inplace=True)
 
@@ -127,7 +127,7 @@ def pre_process_eye_data(eye_data, screen_width_in_mm=595, screen_height_in_mm=3
 
     # annotate binocular fixations
     eye_data["Fixation"] = eye_data.LeftEyeFixationFlag + eye_data.RightEyeFixationFlag
-    # eliminate simultaneous blink and fixation (setting fixation to 0)
+    ## eliminate simultaneous blink and fixation (setting fixation to 0)
     eye_data.Fixation.loc[eye_data.LeftBlink > 0.0] = 0.0
     eye_data.Fixation.loc[eye_data.RightBlink > 0.0] = 0.0
     eye_data.Fixation[eye_data.Fixation > 1] = 1.0
@@ -146,12 +146,25 @@ def pre_process_eye_data(eye_data, screen_width_in_mm=595, screen_height_in_mm=3
     eye_data["fixation_duration"] = np.nan
     eye_data = eye_data.groupby("N_fixation", dropna=False).apply(calc_fixation_duration)
 
+    # sum up left and right eye positions to converging eye position in x and y dimension
+    eye_data["converging_eye_x"] = eye_data.apply(lambda row: (row.LeftEyeX + row.RightEyeX) / 2, axis=1)
+    eye_data["converging_eye_y"] = eye_data.apply(lambda row: (row.LeftEyeY + row.RightEyeY) / 2, axis=1)
+
+    # adjust eye-tracking coordinates by fixed factor
+    eye_data["converging_eye_x_adjusted"] = eye_data.converging_eye_x + 960
+    eye_data["converging_eye_y_adjusted"] = eye_data.converging_eye_y.apply(lambda x: x * (-1) + 540)
+
+    # annotate fixations exploring the scene
+    cond = (eye_data["fixationOnset"] == 1.0) & (eye_data["converging_eye_y_adjusted"] > 640)
+    # have =1 everywhere condition applies and =0 where not
+    eye_data["exploring_fixation"] = np.where(cond, 1, 0)
+
     # flag fixations and saccades aiming within game boarders
     # in (edge*scaling, (edge+observation_space_x)*scaling)
 
     # annotate binocular saccades
     eye_data["Saccade"] = eye_data.LeftEyeSaccadeFlag + eye_data.RightEyeSaccadeFlag
-    # eliminate simultaneous blink and saccades (setting saccade to 0)
+    ## eliminate simultaneous blink and saccades (setting saccade to 0)
     eye_data.Saccade.loc[eye_data.LeftBlink > 0.0] = 0.0
     eye_data.Saccade.loc[eye_data.RightBlink > 0.0] = 0.0
     eye_data.Saccade[eye_data.Saccade > 1] = 1.0
@@ -177,14 +190,6 @@ def pre_process_eye_data(eye_data, screen_width_in_mm=595, screen_height_in_mm=3
 
     # set saccade direction to NaN everywhere where there is no saccade
     out.loc[eye_data.Saccade < 1.0, ["saccade_direction_x", "saccade_direction_y"]] = np.nan
-
-    # sum up left and right eye positions to converging eye position in x and y dimension
-    out["converging_eye_x"] = out.apply(lambda row: (row.LeftEyeX + row.RightEyeX) / 2, axis=1)
-    out["converging_eye_y"] = out.apply(lambda row: (row.LeftEyeY + row.RightEyeY) / 2, axis=1)
-
-    # adjust eye-tracking coordinates by fixed factor
-    out["converging_eye_x_adjusted"] = out.converging_eye_x + 960
-    out["converging_eye_y_adjusted"] = out.converging_eye_y.apply(lambda x: x * (-1) + 540)
 
     return out
 
