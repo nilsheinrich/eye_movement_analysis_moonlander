@@ -3,6 +3,7 @@ import pandas as pd
 from ast import literal_eval
 import arviz as az
 import scipy.stats as st
+
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
@@ -59,14 +60,14 @@ def pre_process_input_data(dataframe):
     # flagging drift onset (and second drift onset)
     # condition for drift onset
     cond = (dataframe["visible_drift_tiles"].str.len() != 0) & (
-                dataframe["visible_drift_tiles"].shift(1).str.len() == 0)
+            dataframe["visible_drift_tiles"].shift(1).str.len() == 0)
 
     # have =1 everywhere condition applies and =0 where not
     dataframe["drift_tile_onset"] = np.where(cond, 1, 0)
 
     # condition for multiple drift tiles on screen
     cond = (dataframe["visible_drift_tiles"].shift(1).str.len() != 0) & (
-                dataframe["visible_drift_tiles"].str.len() > dataframe["visible_drift_tiles"].shift(1).str.len())
+            dataframe["visible_drift_tiles"].str.len() > dataframe["visible_drift_tiles"].shift(1).str.len())
 
     # have =1 everywhere condition applies and =0 where not
     dataframe["second_drift_tile_onset"] = np.where(cond, 1, 0)
@@ -198,14 +199,19 @@ def point_estimate(data):
     """
     function for estimating point of maximum for kde
     """
+    try:
+        kde = st.gaussian_kde(data)  # gaussian kernel
+        n_samples = 1000  # arbitrarily high number of samples
+        samples = np.linspace(min(data), max(data), n_samples)  # sampling
+        probs = kde.evaluate(samples)
+        point_estimate_y = max(probs)
+        point_estimate_index = probs.argmax()
+        point_estimate_x = samples[point_estimate_index]
+        hdi = az.hdi(samples,
+                     hdi_prob=0.25)  # compute hpdi (I went for the smallest interval which contains 25% of the mass)
 
-    kde = st.gaussian_kde(data)  # gaussian kernel
-    n_samples = 1000  # arbitrarily high number of samples
-    samples = np.linspace(min(data), max(data), n_samples)  # sampling
-    probs = kde.evaluate(samples)
-    point_estimate_y = max(probs)
-    point_estimate_index = probs.argmax()
-    point_estimate_x = samples[point_estimate_index]
-    hdi = az.hdi(samples, hdi_prob=0.25)  # compute hpdi (I went for the smallest interval which contains 25% of the mass)
+        return point_estimate_x, point_estimate_y, hdi[0], hdi[1]
+    except np.linalg.LinAlgError:
+        print("SingularMatrixError; numpy.linalg.LinAlgError: singular matrix; no variance in data")
 
-    return point_estimate_x, point_estimate_y, hdi[0], hdi[1]
+        return data.iloc[0], data.iloc[0], data.iloc[0], data.iloc[0]
