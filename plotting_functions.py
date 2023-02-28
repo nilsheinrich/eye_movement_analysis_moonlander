@@ -115,7 +115,7 @@ def plot_fixation_location_kde(eye_data_none, eye_data_weak, eye_data_strong, le
                                safe_plot=False,
                                path_to_save_folder=f"{os.getcwd()}/plots/kde_plots_fixation_locations/"):
     """
-    :param eye_data_none: data of onput noise = nan
+    :param eye_data_none: data of onput noise = none
     :param eye_data_weak: data of onput noise = weak
     :param eye_data_strong: data of onput noise = strong
     :param level: level played
@@ -135,7 +135,7 @@ def plot_fixation_location_kde(eye_data_none, eye_data_weak, eye_data_strong, le
     # Plotting
     colors = ["crimson", "limegreen", "lightskyblue"]
     color_maps = ["Reds", "Greens", "Blues"]
-    input_noise_magnitude = ["NaN", "weak", "strong"]
+    input_noise_magnitude = ["none", "weak", "strong"]
     counter = 0
 
     for eye_data, ax in zip([eye_data_none, eye_data_weak, eye_data_strong], axs.ravel()):
@@ -180,7 +180,7 @@ def plot_fixation_duration(eye_data_none, eye_data_weak, eye_data_strong, level,
                            exploring_fixations=True, safe_plot=False,
                            path_to_save_folder=f"{os.getcwd()}/plots/plota_fixation_duration/"):
     """
-    :param eye_data_none: data of onput noise = nan
+    :param eye_data_none: data of onput noise = none
     :param eye_data_weak: data of onput noise = weak
     :param eye_data_strong: data of onput noise = strong
     :param level: level played
@@ -207,13 +207,13 @@ def plot_fixation_duration(eye_data_none, eye_data_weak, eye_data_strong, level,
 
     ax.set_xlim([-70, 70])
     ax.set_xticks([-50, 0, 50])
-    ax.set_xticklabels(["NaN", "weak", "strong"])
+    ax.set_xticklabels(["none", "weak", "strong"])
 
     # Plotting
     colors = ["coral", "lightgreen", "royalblue"]
     colors_p = ["crimson", "green", "blue"]
     color_maps = ["Reds", "Greens", "Blues"]
-    input_noise_magnitude = ["NaN", "weak", "strong"]
+    input_noise_magnitude = ["none", "weak", "strong"]
     offset = [-50, 0, 50]
     n_fixations = [np.nan, np.nan, np.nan]
     n_target_fixations = [np.nan, np.nan, np.nan]
@@ -261,7 +261,7 @@ def plot_fixation_duration(eye_data_none, eye_data_weak, eye_data_strong, level,
 def plot_eye_rest_y_over_time(eye_data_none, eye_data_weak, eye_data_strong, input_data, safe_plot=False,
                               path_to_save_folder=f"{os.getcwd()}/plots/eye_resting_position_y/"):
     """
-    :param eye_data_none: data of onput noise = nan
+    :param eye_data_none: data of onput noise = none
     :param eye_data_weak: data of onput noise = weak
     :param eye_data_strong: data of onput noise = strong
     :param input_data: from which level features will be extracted as well as drift onset
@@ -292,7 +292,7 @@ def plot_eye_rest_y_over_time(eye_data_none, eye_data_weak, eye_data_strong, inp
     colors = ["coral", "lightgreen", "royalblue"]
     colors_p = ["crimson", "green", "blue"]
     color_maps = ["Reds", "Greens", "Blues"]
-    input_noise_magnitude = ["NaN", "weak", "strong"]
+    input_noise_magnitude = ["none", "weak", "strong"]
 
     counter = 0
 
@@ -329,7 +329,7 @@ def plot_saccade_amplitudes(eye_data_none, eye_data_weak, eye_data_strong, level
                             regressive_saccades=False, safe_plot=False,
                             path_to_save_folder=f"{os.getcwd()}/plots/plots_saccade_amplitude/"):
     """
-    :param eye_data_none: data of onput noise = nan
+    :param eye_data_none: data of onput noise = none
     :param eye_data_weak: data of onput noise = weak
     :param eye_data_strong: data of onput noise = strong
     :param level: level played
@@ -356,13 +356,13 @@ def plot_saccade_amplitudes(eye_data_none, eye_data_weak, eye_data_strong, level
 
     ax.set_xlim([-70, 70])
     ax.set_xticks([-50, 0, 50])
-    ax.set_xticklabels(["NaN", "weak", "strong"])
+    ax.set_xticklabels(["none", "weak", "strong"])
 
     # Plotting
     colors = ["coral", "lightgreen", "royalblue"]
     colors_p = ["crimson", "green", "blue"]
     color_maps = ["Reds", "Greens", "Blues"]
-    input_noise_magnitude = ["NaN", "weak", "strong"]
+    input_noise_magnitude = ["none", "weak", "strong"]
     offset = [-50, 0, 50]
     n_saccades = [np.nan, np.nan, np.nan]
     n_target_saccades = [np.nan, np.nan, np.nan]
@@ -410,7 +410,7 @@ def plot_saccade_amplitudes(eye_data_none, eye_data_weak, eye_data_strong, level
 def plot_saccade_vectors(eye_data_none, eye_data_weak, eye_data_strong, level, drift_enabled, regressive_saccades=False,
                          safe_plot=False, path_to_save_folder=f"{os.getcwd()}/plots/plots_saccade_vectors/"):
     """
-    :param eye_data_none: data of onput noise = nan
+    :param eye_data_none: data of onput noise = none
     :param eye_data_weak: data of onput noise = weak
     :param eye_data_strong: data of onput noise = strong
     :param level: level played
@@ -436,7 +436,7 @@ def plot_saccade_vectors(eye_data_none, eye_data_weak, eye_data_strong, level, d
     colors = ["coral", "lightgreen", "royalblue"]
     colors_p = ["crimson", "green", "blue"]
     color_maps = ["Reds", "Greens", "Blues"]
-    input_noise_magnitude = ["NaN", "weak", "strong"]
+    input_noise_magnitude = ["none", "weak", "strong"]
     n_saccades = [np.nan, np.nan, np.nan]
     n_target_saccades = [np.nan, np.nan, np.nan]
 
@@ -499,7 +499,7 @@ def plot_saccade_landing_sites(eye_data_none, eye_data_weak, eye_data_strong, le
                                regressive_saccades=False, safe_plot=False,
                                path_to_save_folder=f"{os.getcwd()}/plots/plots_saccade_landing_site/"):
     """
-    :param eye_data_none: data of onput noise = nan
+    :param eye_data_none: data of onput noise = none
     :param eye_data_weak: data of onput noise = weak
     :param eye_data_strong: data of onput noise = strong
     :param level: level played
@@ -524,7 +524,7 @@ def plot_saccade_landing_sites(eye_data_none, eye_data_weak, eye_data_strong, le
     colors = ["coral", "lightgreen", "royalblue"]
     colors_p = ["crimson", "green", "blue"]
     color_maps = ["Reds", "Greens", "Blues"]
-    input_noise_magnitude = ["NaN", "weak", "strong"]
+    input_noise_magnitude = ["none", "weak", "strong"]
     n_saccades = [np.nan, np.nan, np.nan]
     n_target_saccades = [np.nan, np.nan, np.nan]
 
@@ -594,7 +594,7 @@ def plot_saccade_amplitude_kde(eye_data_none, eye_data_weak, eye_data_strong, le
                                regressive_saccades=False, safe_plot=False,
                                path_to_save_folder=f"{os.getcwd()}/plots/plots_saccade_amplitude_kde/"):
     """
-    :param eye_data_none: data of onput noise = nan
+    :param eye_data_none: data of onput noise = none
     :param eye_data_weak: data of onput noise = weak
     :param eye_data_strong: data of onput noise = strong
     :param level: level played
@@ -630,7 +630,7 @@ def plot_saccade_amplitude_kde(eye_data_none, eye_data_weak, eye_data_strong, le
     colors = ["coral", "lightgreen", "royalblue"]
     colors_p = ["crimson", "green", "blue"]
     color_maps = ["Reds", "Greens", "Blues"]
-    input_noise_magnitude = ["NaN", "weak", "strong"]
+    input_noise_magnitude = ["none", "weak", "strong"]
     n_saccades = [np.nan, np.nan, np.nan]
     n_target_saccades = [np.nan, np.nan, np.nan]
 
