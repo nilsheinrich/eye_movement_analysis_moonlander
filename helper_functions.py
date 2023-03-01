@@ -8,19 +8,24 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 def pre_process_input_data(dataframe):
-    '''
+    """
     dataframe must be pandas dataFrame with appropriate columns...
-    '''
+    """
 
-    dataframe.rename(columns={'Unnamed: 0': 'frame'}, inplace=True)
+    if 'Unnamed: 0' in dataframe.columns:
+        dataframe.rename(columns={'Unnamed: 0': 'frame'}, inplace=True)
+    else:
+        # dataframe['frame'] = dataframe.index
+        dataframe.insert(0, 'frame', dataframe.index)
 
     # convert columns with literal_eval to not have strings anymore
     dataframe.player_pos = dataframe.player_pos.apply(lambda row: literal_eval(row))
     dataframe.visible_obstacles = dataframe.visible_obstacles.apply(lambda row: literal_eval(row))
     dataframe.visible_drift_tiles = dataframe.visible_drift_tiles.apply(lambda row: literal_eval(row))
 
-    # adjust time tag
-    dataframe['adjusted_time_tag'] = dataframe.time_played + dataframe.time_tag
+    # adjust time tag if existent
+    if 'time_tag' in dataframe.columns:
+        dataframe['adjusted_time_tag'] = dataframe.time_played + dataframe.time_tag
 
     ## annotate input data
 
@@ -59,15 +64,14 @@ def pre_process_input_data(dataframe):
 
     # flagging drift onset (and second drift onset)
     # condition for drift onset
-    cond = (dataframe["visible_drift_tiles"].str.len() != 0) & (
-            dataframe["visible_drift_tiles"].shift(1).str.len() == 0)
+    cond = (dataframe["visible_drift_tiles"].str.len() != 0) & ( dataframe["visible_drift_tiles"].shift(1).str.len() == 0)
 
     # have =1 everywhere condition applies and =0 where not
     dataframe["drift_tile_onset"] = np.where(cond, 1, 0)
 
     # condition for multiple drift tiles on screen
     cond = (dataframe["visible_drift_tiles"].shift(1).str.len() != 0) & (
-            dataframe["visible_drift_tiles"].str.len() > dataframe["visible_drift_tiles"].shift(1).str.len())
+                dataframe["visible_drift_tiles"].str.len() > dataframe["visible_drift_tiles"].shift(1).str.len())
 
     # have =1 everywhere condition applies and =0 where not
     dataframe["second_drift_tile_onset"] = np.where(cond, 1, 0)
