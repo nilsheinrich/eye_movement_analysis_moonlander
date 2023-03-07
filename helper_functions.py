@@ -15,7 +15,6 @@ def pre_process_input_data(dataframe):
     if 'Unnamed: 0' in dataframe.columns:
         dataframe.rename(columns={'Unnamed: 0': 'frame'}, inplace=True)
     else:
-        # dataframe['frame'] = dataframe.index
         dataframe.insert(0, 'frame', dataframe.index)
 
     # convert columns with literal_eval to not have strings anymore
