@@ -10,3 +10,4 @@ eye_data/*
 videos/*
 .Rhistory
 .ipynb_checkpoints
+data_analysis.ipynb
