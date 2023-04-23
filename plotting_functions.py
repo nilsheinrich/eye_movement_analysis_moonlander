@@ -205,8 +205,8 @@ def plot_fixation_duration(eye_data_none, eye_data_weak, eye_data_strong, level,
     ax.set_xlabel("input noise magnitude")
     ax.set_ylabel("fixation duration (in ms)")
 
-    ax.set_xlim([-70, 70])
-    ax.set_xticks([-50, 0, 50])
+    ax.set_xlim([-1.25, 1.25])
+    ax.set_xticks([-0.75, 0, 0.75])
     ax.set_xticklabels(["none", "weak", "strong"])
 
     # Plotting
@@ -214,7 +214,7 @@ def plot_fixation_duration(eye_data_none, eye_data_weak, eye_data_strong, level,
     colors_p = ["crimson", "green", "blue"]
     color_maps = ["Reds", "Greens", "Blues"]
     input_noise_magnitude = ["none", "weak", "strong"]
-    offset = [-50, 0, 50]
+    offset = [-0.75, 0, 0.75]
     n_fixations = [np.nan, np.nan, np.nan]
     n_target_fixations = [np.nan, np.nan, np.nan]
 
@@ -240,6 +240,13 @@ def plot_fixation_duration(eye_data_none, eye_data_weak, eye_data_strong, level,
                    alpha=0.3)
         ax.plot(offset[counter], np.mean(target_fixations.fixation_duration), marker="_", markersize=15,
                 color=colors_p[counter], alpha=1.0)
+
+        # display density in violinplot over points
+        violin = ax.violinplot(target_fixations.fixation_duration, showextrema=False, positions=[offset[counter]])
+        violinparts = violin['bodies']
+        for vp in violinparts:
+            vp.set_facecolor(colors[counter])
+            vp.set_edgecolor(colors[counter])
 
         counter += 1
 
@@ -354,8 +361,8 @@ def plot_saccade_amplitudes(eye_data_none, eye_data_weak, eye_data_strong, level
     ax.set_xlabel("input noise magnitude")
     ax.set_ylabel("saccade amplitude (in °)")
 
-    ax.set_xlim([-70, 70])
-    ax.set_xticks([-50, 0, 50])
+    ax.set_xlim([-1.25, 1.25])
+    ax.set_xticks([-0.75, 0, 0.75])
     ax.set_xticklabels(["none", "weak", "strong"])
 
     # Plotting
@@ -363,7 +370,7 @@ def plot_saccade_amplitudes(eye_data_none, eye_data_weak, eye_data_strong, level
     colors_p = ["crimson", "green", "blue"]
     color_maps = ["Reds", "Greens", "Blues"]
     input_noise_magnitude = ["none", "weak", "strong"]
-    offset = [-50, 0, 50]
+    offset = [-0.75, 0, 0.75]
     n_saccades = [np.nan, np.nan, np.nan]
     n_target_saccades = [np.nan, np.nan, np.nan]
 
@@ -389,6 +396,13 @@ def plot_saccade_amplitudes(eye_data_none, eye_data_weak, eye_data_strong, level
                    alpha=0.3)
         ax.plot(offset[counter], np.mean(target_saccades.saccade_amplitude), marker="_", markersize=15,
                 color=colors_p[counter], alpha=1.0)
+
+        # display density in violinplot over points
+        violin = ax.violinplot(target_saccades.saccade_amplitude, showextrema=False, positions=[offset[counter]])
+        violinparts = violin['bodies']
+        for vp in violinparts:
+            vp.set_facecolor(colors[counter])
+            vp.set_edgecolor(colors[counter])
 
         counter += 1
 
