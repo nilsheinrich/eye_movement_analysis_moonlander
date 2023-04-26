@@ -115,9 +115,9 @@ def plot_fixation_location_kde(eye_data_none, eye_data_weak, eye_data_strong, le
                                safe_plot=False,
                                path_to_save_folder=f"{os.getcwd()}/plots/kde_plots_fixation_locations/"):
     """
-    :param eye_data_none: data of onput noise = none
-    :param eye_data_weak: data of onput noise = weak
-    :param eye_data_strong: data of onput noise = strong
+    :param eye_data_none: data of input noise = none
+    :param eye_data_weak: data of input noise = weak
+    :param eye_data_strong: data of input noise = strong
     :param level: level played
     :param drift_enabled: True vs. False
     :param safe_plot: True vs. False - determines whether plots are saved or not
@@ -177,15 +177,16 @@ def plot_fixation_location_kde(eye_data_none, eye_data_weak, eye_data_strong, le
 
 
 def plot_fixation_duration(eye_data_none, eye_data_weak, eye_data_strong, level, drift_enabled,
-                           exploring_fixations=True, safe_plot=False,
+                           exploring_fixations=True, log_scale=False, safe_plot=False,
                            path_to_save_folder=f"{os.getcwd()}/plots/plota_fixation_duration/"):
     """
-    :param eye_data_none: data of onput noise = none
-    :param eye_data_weak: data of onput noise = weak
-    :param eye_data_strong: data of onput noise = strong
+    :param eye_data_none: data of input noise = none
+    :param eye_data_weak: data of input noise = weak
+    :param eye_data_strong: data of input noise = strong
     :param level: level played
     :param drift_enabled: True vs. False
     :param exploring_fixations: True vs. False; if True progressive fixations are considered, else resting fixations
+    :param log_scale: False vs. True; whether y axis log scaled
     :param safe_plot: True vs. False - determines whether plots are saved or not
     :param path_to_save_folder: path to the folder in which plots are saved in case of safe_plot=True
     IMPORTANT: The function will not raise an error if the runs aren't of the same level and drift condition. It will only consider level and drift passed for labeling
@@ -208,6 +209,10 @@ def plot_fixation_duration(eye_data_none, eye_data_weak, eye_data_strong, level,
     ax.set_xlim([-1.25, 1.25])
     ax.set_xticks([-0.75, 0, 0.75])
     ax.set_xticklabels(["none", "weak", "strong"])
+
+    if log_scale:
+        ax.set_ylim([10 ** -3, 10 ** 1])
+        ax.set_yscale("log")
 
     # Plotting
     colors = ["coral", "lightgreen", "royalblue"]
@@ -268,9 +273,9 @@ def plot_fixation_duration(eye_data_none, eye_data_weak, eye_data_strong, level,
 def plot_eye_rest_y_over_time(eye_data_none, eye_data_weak, eye_data_strong, input_data, safe_plot=False,
                               path_to_save_folder=f"{os.getcwd()}/plots/eye_resting_position_y/"):
     """
-    :param eye_data_none: data of onput noise = none
-    :param eye_data_weak: data of onput noise = weak
-    :param eye_data_strong: data of onput noise = strong
+    :param eye_data_none: data of input noise = none
+    :param eye_data_weak: data of input noise = weak
+    :param eye_data_strong: data of input noise = strong
     :param input_data: from which level features will be extracted as well as drift onset
     :param safe_plot: True vs. False - determines whether plots are saved or not
     :param path_to_save_folder: path to the folder in which plots are saved in case of safe_plot=True
@@ -333,15 +338,16 @@ def plot_eye_rest_y_over_time(eye_data_none, eye_data_weak, eye_data_strong, inp
 
 
 def plot_saccade_amplitudes(eye_data_none, eye_data_weak, eye_data_strong, level, drift_enabled,
-                            regressive_saccades=False, safe_plot=False,
+                            regressive_saccades=False, log_scale=False, safe_plot=False,
                             path_to_save_folder=f"{os.getcwd()}/plots/plots_saccade_amplitude/"):
     """
-    :param eye_data_none: data of onput noise = none
-    :param eye_data_weak: data of onput noise = weak
-    :param eye_data_strong: data of onput noise = strong
+    :param eye_data_none: data of input noise = none
+    :param eye_data_weak: data of input noise = weak
+    :param eye_data_strong: data of input noise = strong
     :param level: level played
     :param drift_enabled: True vs. False
     :param regressive_saccades: True vs. False; if True regressive saccades are targeted else progressive saccades
+    :param log_scale: False vs. True; whether y axis log scaled
     :param safe_plot: True vs. False - determines whether plots are saved or not
     :param path_to_save_folder: path to the folder in which plots are saved in case of safe_plot=True
     IMPORTANT: The function will not raise an error if the runs aren't of the same level and drift condition. It will only consider level and drift passed for labeling
@@ -364,6 +370,10 @@ def plot_saccade_amplitudes(eye_data_none, eye_data_weak, eye_data_strong, level
     ax.set_xlim([-1.25, 1.25])
     ax.set_xticks([-0.75, 0, 0.75])
     ax.set_xticklabels(["none", "weak", "strong"])
+
+    if log_scale:
+        ax.set_ylim([10 ** -1, 10 ** 3])
+        ax.set_yscale("log")
 
     # Plotting
     colors = ["coral", "lightgreen", "royalblue"]
@@ -424,9 +434,9 @@ def plot_saccade_amplitudes(eye_data_none, eye_data_weak, eye_data_strong, level
 def plot_saccade_vectors(eye_data_none, eye_data_weak, eye_data_strong, level, drift_enabled, regressive_saccades=False,
                          safe_plot=False, path_to_save_folder=f"{os.getcwd()}/plots/plots_saccade_vectors/"):
     """
-    :param eye_data_none: data of onput noise = none
-    :param eye_data_weak: data of onput noise = weak
-    :param eye_data_strong: data of onput noise = strong
+    :param eye_data_none: data of input noise = none
+    :param eye_data_weak: data of input noise = weak
+    :param eye_data_strong: data of input noise = strong
     :param level: level played
     :param drift_enabled: True vs. False
     :param regressive_saccades: True vs. False; if True regressive saccades are targeted else progressive saccades
@@ -513,9 +523,9 @@ def plot_saccade_landing_sites(eye_data_none, eye_data_weak, eye_data_strong, le
                                regressive_saccades=False, safe_plot=False,
                                path_to_save_folder=f"{os.getcwd()}/plots/plots_saccade_landing_site/"):
     """
-    :param eye_data_none: data of onput noise = none
-    :param eye_data_weak: data of onput noise = weak
-    :param eye_data_strong: data of onput noise = strong
+    :param eye_data_none: data of input noise = none
+    :param eye_data_weak: data of input noise = weak
+    :param eye_data_strong: data of input noise = strong
     :param level: level played
     :param drift_enabled: True vs. False
     :param regressive_saccades: True vs. False; if True regressive saccades are targeted else progressive saccades
@@ -608,9 +618,9 @@ def plot_saccade_amplitude_kde(eye_data_none, eye_data_weak, eye_data_strong, le
                                regressive_saccades=False, safe_plot=False,
                                path_to_save_folder=f"{os.getcwd()}/plots/plots_saccade_amplitude_kde/"):
     """
-    :param eye_data_none: data of onput noise = none
-    :param eye_data_weak: data of onput noise = weak
-    :param eye_data_strong: data of onput noise = strong
+    :param eye_data_none: data of input noise = none
+    :param eye_data_weak: data of input noise = weak
+    :param eye_data_strong: data of input noise = strong
     :param level: level played
     :param drift_enabled: True vs. False
     :param regressive_saccades: True vs. False; if True regressive saccades are targeted else progressive saccades
