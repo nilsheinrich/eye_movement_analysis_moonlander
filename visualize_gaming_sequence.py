@@ -76,8 +76,11 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, scaling=1
         ax.xaxis.set_major_locator(ticker.NullLocator())
         ax.yaxis.set_major_locator(ticker.NullLocator())
 
+        # get current frame in input_data
+        current_input_data_frame = input_data_.iloc[i]
+
         # input keys
-        current_input = input_data_.current_input.iloc[i]  # nan vs. "Left" vs. "Right"
+        current_input = current_input_data_frame.current_input  # nan vs. "Left" vs. "Right"
         # assign alpha based on input
         alpha_left = 0.2
         alpha_right = 0.2
@@ -95,10 +98,10 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, scaling=1
         ax.add_patch(key_left)
 
         # obstacles
-        obstacle_instance = input_data_.visible_obstacles.iloc[i]
+        obstacle_instance = current_input_data_frame.visible_obstacles
         obstacles_data = pd.DataFrame(obstacle_instance, columns=['x', 'y'])
 
-        drift_instance = input_data_.visible_drift_tiles.iloc[i]
+        drift_instance = current_input_data_frame.visible_drift_tiles
         drift_data = pd.DataFrame(drift_instance, columns=['x', 'y'])
         # transform x to just be boarder of plot (left = edge vs. right = observation_space_x + edge
         drift_data['x'] = drift_data['x'].apply(lambda x: ax.get_xlim()[0] if x <= edge else ax.get_xlim()[1]-10)
@@ -115,7 +118,9 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, scaling=1
 
         # eye tracking data
         # subset for given point in time of input data
-        eye_data_subset = eye_data_[i * factor: i * factor + factor]
+
+        eye_data_subset = eye_data_.iloc[(eye_data_['time_tag'] - current_input_data_frame.time_played).abs().argsort()[:factor]]
+
         sns.kdeplot(x=eye_data_subset.converging_eye_x_adjusted,
                     y=eye_data_subset.converging_eye_y_adjusted,
                     cmap="Reds",
