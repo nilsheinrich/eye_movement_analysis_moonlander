@@ -118,7 +118,6 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, scaling=1
 
         # eye tracking data
         # subset for given point in time of input data
-
         eye_data_subset = eye_data_.iloc[(eye_data_['time_tag'] - current_input_data_frame.time_played).abs().argsort()[:factor]]
 
         sns.kdeplot(x=eye_data_subset.converging_eye_x_adjusted,
@@ -127,7 +126,7 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, scaling=1
                     shade=True,
                     alpha=0.9,
                     ax=ax)
-        # draw fixation
+        # draw cross indicating gaze location
         y_coord = point_estimate(eye_data_subset.converging_eye_y_adjusted)[0]
         ax.axhline(y_coord, color="crimson")
         x_coord = point_estimate(eye_data_subset.converging_eye_x_adjusted)[0]

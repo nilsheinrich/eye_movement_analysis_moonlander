@@ -1,0 +1,257 @@
+---
+title: "linear_modeling_moonlander_eye_data"
+author: "Nils Wendel Heinrich"
+date: '2023-02-17'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages, include=FALSE}
+library(tidyverse)
+library(lme4)
+library(lmerTest)
+library(sjPlot)
+library(ggplot2)
+library(fitdistrplus)
+```
+
+
+```{r data, include=FALSE}
+#current_wd = getwd()
+data_fixations <- read_csv("eye_data/experimental_eye_data_fixations.csv")
+data_saccades <- read_csv("eye_data/experimental_eye_data_saccades.csv")
+```
+
+```{r descriptives, include=FALSE}
+
+unique(data_fixations$ID)
+unique(data_saccades$ID)
+
+```
+
+```{r edit_data, include=TRUE}
+
+## level difficulty
+
+# fixations
+data_fixations <- data_fixations %>%
+  mutate(level_difficulty = case_when(
+    (level == 1 | level == 2) ~ "easy",
+    (level == 3 | level == 4) ~ "medium",
+    (level == 5 | level == 6) ~ "hard",
+    ))
+data_fixations$level_difficulty <- as.factor(data_fixations$level_difficulty)
+data_fixations <- within(data_fixations, level_difficulty <- relevel(level_difficulty, ref = "easy"))
+
+# saccades
+data_saccades <- data_saccades %>%
+  mutate(level_difficulty = case_when(
+    (level == 1 | level == 2) ~ "easy",
+    (level == 3 | level == 4) ~ "medium",
+    (level == 5 | level == 6) ~ "hard",
+    ))
+data_saccades$level_difficulty <- as.factor(data_saccades$level_difficulty)
+data_saccades <- within(data_saccades, level_difficulty <- relevel(level_difficulty, ref = "easy"))
+
+
+```
+
+# linear modeling
+```{r random_effects, include=TRUE}
+
+# random intercept for ID
+
+null_fixDur <- lmer(fixation_duration ~ 1 + (1|ID), data=data_fixations, REML=FALSE)
+summary(null_fixDur)
+
+null_fixLoc <- lmer(converging_eye_y ~ 1 + (1|ID), data=data_fixations, REML=FALSE)
+summary(null_fixLoc)
+
+null_saccAmp <- lmer(saccade_amplitude ~ 1 + (1|ID), data=data_saccades, REML=FALSE)
+summary(null_saccAmp)
+
+```
+```{r ICCs, include=TRUE}
+
+ICC_fixDur <- 0.02083 / (0.02083 + 0.08969)
+ICC_fixDur
+
+ICC_convergingEyeY <- 1927 / (1927 + 41220)
+ICC_convergingEyeY
+
+ICC_saccAmp <- 20822 / (20822 + 1349405)
+ICC_saccAmp
+
+```
+
+## Fixations
+
+The VPixx eye tracker might have detected fixations where there are none, resulting in a fixation duration of 0 ms. We will filter those and divide the data into fixations exploring the scene, and fixations that "rest" directly in front of the space ship.
+```{r filtering, include=TRUE}
+
+# only considering fixations with duration > 0:
+data_fixations <- data_fixations[data_fixations$fixation_duration > 0, ]
+
+# subsetting exploring fixations
+explorative_fixations <- data_fixations[data_fixations$exploring_fixation == 1, ]
+# vs. fixations resting in front of spaceship
+resting_fixations <- data_fixations[data_fixations$exploring_fixation == 0, ]
+
+```
+
+
+```{r random_effects_for_explorative, include=TRUE}
+
+# ID
+
+null_1 <- lmer(fixation_duration ~ 1 + (1|ID), data=explorative_fixations, REML=FALSE)
+summary(null_1)
+
+null_2 <- lmer(converging_eye_y ~ 1 + (1|ID), data=explorative_fixations, REML=FALSE)
+summary(null_2)
+
+
+```
+
+```{r ICCs_explore, include=TRUE}
+
+ICC_fixDur_explore <- 0.01510 / (0.01510 + 0.08911)
+ICC_fixDur_explore
+
+ICC_convergingEyeY_explore <- 5501 / (5501 + 27074)
+ICC_convergingEyeY_explore
+
+
+```
+
+# fixation duration
+
+We will first take a look at fixation duration. From experience I know that duration are not normally distributed and naturally can not have negative values. We will explore how the data fits a gamma distribution.
+
+```{r check_fixDur_fit, include=TRUE}
+
+fit.gamma <- fitdist(data_fixations$fixation_duration, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+hist(data_fixations$fixation_duration, breaks=200)
+```
+
+The fit looks good. We will therefore use generalized linear modeling to fit a model on the gamma distributed fixation duration for exploring and resting fixations individually. We specify drift, input_noise, and level as fixed effects while assuming an interaction effect between drift and input_noise. 
+```{r fixation_duration, include=TRUE}
+
+# for explorative fixations
+fixDur_explore <- glmer(fixation_duration ~ drift*level_difficulty + input_noise + (1|ID),  data = explorative_fixations, family = Gamma)
+summary(fixDur_explore)
+
+#fixDur_explore.free_slope <- glmer(fixation_duration ~ drift*level_difficulty + input_noise + (1 + input_noise|ID),  #data = explorative_fixations, family = Gamma)
+#summary(fixDur_explore.free_slope)
+
+#coef(fixDur_explore)
+#coef(fixDur_explore.free_slope). # when freeing slope for input noise, we can actually see single individuals skewing the coefficients for input noise
+
+# for resting fixations
+fixDur_rest <- glmer(fixation_duration ~ drift*level_difficulty + input_noise + (1|ID),  data = resting_fixations, family = Gamma)
+summary(fixDur_rest)
+
+```
+
+Discussing the results: ...
+
+# fixation location
+
+Next we will take a look at the fixation location in terms of y location (vertical position of eyes on screen). Fixation locations might actually be normally distributed. 
+```{r check_fixloc, include=TRUE}
+fit.gauss <- fitdist(data_fixations$converging_eye_y, distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
+hist(data_fixations$converging_eye_y, breaks=200)
+```
+
+That looks smooth. We will therefore be able to fit a LMM without having to specify a family for our outcome variable converging_eye_y. 
+We stick to our fixed effects model structure and fit a model for exploring and resting fixations individually.
+```{r fixation_location, include=TRUE}
+
+# subsetting exploring fixations
+fixloc_explore <- lmer(converging_eye_y ~ drift*level_difficulty + input_noise + (1|ID),  data = explorative_fixations, REML = FALSE)
+summary(fixloc_explore)
+
+# vs. fixations resting in front of spaceship
+fixloc_rest <- lmer(converging_eye_y ~ drift*level_difficulty + input_noise + (1|ID),  data = resting_fixations, REML = FALSE)
+summary(fixloc_rest)
+
+```
+
+Discussing the results: ...
+
+## Saccades
+
+```{r filtering_saccades, include=TRUE}
+
+# only considering fixations with duration > 0:
+data_saccades <- data_saccades[data_saccades$saccade_amplitude > 0 & data_saccades$saccade_amplitude < 1000, ]
+data_saccades <- na.omit(data_saccades)
+
+# subsetting progressive saccades
+progressive_saccades <- data_saccades[data_saccades$saccade_direction_y < 0, ]
+# vs. regressive saccades going back to the spaceship
+regressive_saccades <- data_saccades[data_saccades$saccade_direction_y > 0, ]
+
+```
+
+# saccade amplitude
+
+```{r check_saccamp, include=TRUE}
+
+fit.gamma <- fitdist(data_saccades$saccade_amplitude, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+# sum(is.nan(data_saccades$saccade_amplitude))
+hist(data_saccades$saccade_amplitude, breaks=200)
+min(data_saccades$saccade_amplitude)
+```
+
+```{r saccade_amplitude, include=TRUE}
+
+# subsetting exploring fixations
+saccamp_progress <- lmer(saccade_amplitude ~ drift*level_difficulty + input_noise + (1|ID),  data = progressive_saccades, REML = FALSE)
+summary(saccamp_progress)
+
+# vs. fixations resting in front of spaceship
+saccamp_regress <- lmer(saccade_amplitude ~ drift*level_difficulty + input_noise + (1|ID),  data = regressive_saccades, REML = FALSE)
+summary(saccamp_regress)
+
+```
+
+Follow-up: Does saccades land nearer spaceship after saccade during strong input noise (compared to intercept)?
+
+```{r soc, include=TRUE}
+
+soc_data <- read_csv("aggregated_soc_data.csv")
+
+soc_data <- soc_data %>%
+  mutate(level_difficulty = case_when(
+    (level == 1 | level == 2) ~ "easy",
+    (level == 3 | level == 4) ~ "medium",
+    (level == 5 | level == 6) ~ "hard",
+    ))
+soc_data$level_difficulty <- as.factor(soc_data$level_difficulty)
+soc_data <- within(soc_data, level_difficulty <- relevel(level_difficulty, ref = "easy"))
+
+hist(soc_data$SoC, breaks=7)
+
+```
+
+```{r soc_model, include=TRUE}
+
+# fixed effects structure to be discussed:
+# 1) done + drift*level_difficulty + input_noise
+# 2) drift*level_difficulty + input_noise + (1|done)
+
+soc_model <- lmer(SoC ~ done + drift*level_difficulty + input_noise + (1|ID),  data = soc_data)
+summary(soc_model)
+coef(soc_model)
+```
