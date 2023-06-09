@@ -11,4 +11,5 @@ start_time = 5
 end_time = 15
 
 # call visualize function
-visualize_sequence(id_code=id_code, done_=done_, n_run=n_run, arg_comb=arg_comb, start_time=5, end_time=15, safe_ani=False)
+#visualize_sequence(id_code=id_code, done_=done_, n_run=n_run, arg_comb=arg_comb, start_time=5, end_time=15, safe_ani=False)
+visualize_sequence(id_code=id_code, done_=done_, n_run=n_run, arg_comb=arg_comb, safe_ani=False)

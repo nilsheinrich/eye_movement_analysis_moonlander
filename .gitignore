@@ -7,7 +7,7 @@ moonlander pilot data
 experimental_data/*
 input_data/*
 eye_data/*
-data_old
+eye_data_pre_processed/*
 videos/*
 .Rhistory
 .ipynb_checkpoints

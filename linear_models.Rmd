@@ -76,18 +76,18 @@ summary(null_saccAmp)
 ```
 ```{r ICCs, include=TRUE}
 
-ICC_fixDur <- 0.02083 / (0.02083 + 0.08969)
+ICC_fixDur <- 0.02035 / (0.02035 + 0.09764)
 ICC_fixDur
 
-ICC_convergingEyeY <- 1927 / (1927 + 41220)
+ICC_convergingEyeY <- 2124 / (2124 + 39657)
 ICC_convergingEyeY
 
-ICC_saccAmp <- 20822 / (20822 + 1349405)
+ICC_saccAmp <- 18006 / (18006 + 1191792)
 ICC_saccAmp
 
 ```
 
-## Fixations
+# Fixations
 
 The VPixx eye tracker might have detected fixations where there are none, resulting in a fixation duration of 0 ms. We will filter those and divide the data into fixations exploring the scene, and fixations that "rest" directly in front of the space ship.
 ```{r filtering, include=TRUE}
@@ -102,7 +102,10 @@ resting_fixations <- data_fixations[data_fixations$exploring_fixation == 0, ]
 
 ```
 
+In the following we will investigate effects for fixation durations as well as fixation locations only of the vertical axis.
 
+### Explorative fixations
+We will explore ID as random intercept effect specifically for explorative fixations first. 
 ```{r random_effects_for_explorative, include=TRUE}
 
 # ID
@@ -118,31 +121,38 @@ summary(null_2)
 
 ```{r ICCs_explore, include=TRUE}
 
-ICC_fixDur_explore <- 0.01510 / (0.01510 + 0.08911)
+ICC_fixDur_explore <- 0.01516 / (0.01516 + 0.10191)
 ICC_fixDur_explore
 
-ICC_convergingEyeY_explore <- 5501 / (5501 + 27074)
+ICC_convergingEyeY_explore <- 4751 / (4751 + 23696)
 ICC_convergingEyeY_explore
 
 
 ```
 
-# fixation duration
+## fixation duration
 
-We will first take a look at fixation duration. From experience I know that duration are not normally distributed and naturally can not have negative values. We will explore how the data fits a gamma distribution.
+We will first take a look at fixation duration. From experience I know that duration are not normally distributed and naturally can not have negative values. A lot of values will gather in the small x-regions and only few in the large one. We will thus explore how the data fits a gamma distribution. We will account for our distinction of explorative and resting fixations.
 
 ```{r check_fixDur_fit, include=TRUE}
-
-fit.gamma <- fitdist(data_fixations$fixation_duration, distr = "gamma", method = "mme")
+# explorative
+fit.gamma <- fitdist(explorative_fixations$fixation_duration, distr = "gamma", method = "mme")
 summary(fit.gamma)
 plot(fit.gamma)
-hist(data_fixations$fixation_duration, breaks=200)
+hist(explorative_fixations$fixation_duration, breaks=200)
+
+# resting
+fit.gamma <- fitdist(resting_fixations$fixation_duration, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+hist(resting_fixations$fixation_duration, breaks=200)
 ```
 
 The fit looks good. We will therefore use generalized linear modeling to fit a model on the gamma distributed fixation duration for exploring and resting fixations individually. We specify drift, input_noise, and level as fixed effects while assuming an interaction effect between drift and input_noise. 
-```{r fixation_duration, include=TRUE}
 
-# for explorative fixations
+First exploring fixations...
+```{r fixation_duration_explore, include=TRUE}
+
 fixDur_explore <- glmer(fixation_duration ~ drift*level_difficulty + input_noise + (1|ID),  data = explorative_fixations, family = Gamma)
 summary(fixDur_explore)
 
@@ -152,15 +162,21 @@ summary(fixDur_explore)
 #coef(fixDur_explore)
 #coef(fixDur_explore.free_slope). # when freeing slope for input noise, we can actually see single individuals skewing the coefficients for input noise
 
-# for resting fixations
+```
+
+Discussing the results: ...
+
+Then for resting fixations...
+```{r fixation_duration_rest, include=TRUE}
+
 fixDur_rest <- glmer(fixation_duration ~ drift*level_difficulty + input_noise + (1|ID),  data = resting_fixations, family = Gamma)
 summary(fixDur_rest)
 
 ```
 
-Discussing the results: ...
+Discussing the results: We find effects for drift (True vs. False) as well as for input_noise:weak. Strangely no effect for input_noise:strong. This might tell us that how we differentiate between resting and exploring fixations might be off. We also find interaction effects for level_difficulty*drift. Awesome because we find no effects for level_difficulty individually. Neither medium nor hard.
 
-# fixation location
+## fixation location
 
 Next we will take a look at the fixation location in terms of y location (vertical position of eyes on screen). Fixation locations might actually be normally distributed. 
 ```{r check_fixloc, include=TRUE}
@@ -168,25 +184,31 @@ fit.gauss <- fitdist(data_fixations$converging_eye_y, distr = "norm", method = "
 summary(fit.gauss)
 plot(fit.gauss)
 hist(data_fixations$converging_eye_y, breaks=200)
+
+
 ```
 
 That looks smooth. We will therefore be able to fit a LMM without having to specify a family for our outcome variable converging_eye_y. 
-We stick to our fixed effects model structure and fit a model for exploring and resting fixations individually.
-```{r fixation_location, include=TRUE}
+We stick to our fixed effects model structure and fit a model for exploring and resting fixations individually. First we will fit for exploring fixations.
+```{r fixation_location_explore, include=TRUE}
 
-# subsetting exploring fixations
 fixloc_explore <- lmer(converging_eye_y ~ drift*level_difficulty + input_noise + (1|ID),  data = explorative_fixations, REML = FALSE)
 summary(fixloc_explore)
 
-# vs. fixations resting in front of spaceship
+```
+
+Discussing the results: Hm we find effects for both levels (weak and strong) of input noise. Good! But then we find an effect for level_difficulty:medium, but not for strong as well as an interaction effect for drift and level_difficulty:strong, but the interaction with level_difficulty:medium is not significant. Weird...
+
+```{r fixation_location_rest, include=TRUE}
+
 fixloc_rest <- lmer(converging_eye_y ~ drift*level_difficulty + input_noise + (1|ID),  data = resting_fixations, REML = FALSE)
 summary(fixloc_rest)
 
 ```
 
-Discussing the results: ...
+Discussing the results: Here everything is significant. Damn. That's not what we want to see...
 
-## Saccades
+# Saccades
 
 ```{r filtering_saccades, include=TRUE}
 
@@ -201,7 +223,7 @@ regressive_saccades <- data_saccades[data_saccades$saccade_direction_y > 0, ]
 
 ```
 
-# saccade amplitude
+## saccade amplitude
 
 ```{r check_saccamp, include=TRUE}
 
@@ -226,11 +248,12 @@ summary(saccamp_regress)
 
 ```
 
-Follow-up: Does saccades land nearer spaceship after saccade during strong input noise (compared to intercept)?
+Follow-up: Do saccades land nearer spaceship after saccade during strong input noise (compared to intercept)?
 
+# Responses to SoC questionnaire after each trial
 ```{r soc, include=TRUE}
 
-soc_data <- read_csv("aggregated_soc_data.csv")
+soc_data <- read_csv("soc_data/soc_data.csv")
 
 soc_data <- soc_data %>%
   mutate(level_difficulty = case_when(
@@ -253,5 +276,5 @@ hist(soc_data$SoC, breaks=7)
 
 soc_model <- lmer(SoC ~ done + drift*level_difficulty + input_noise + (1|ID),  data = soc_data)
 summary(soc_model)
-coef(soc_model)
+#coef(soc_model)
 ```
