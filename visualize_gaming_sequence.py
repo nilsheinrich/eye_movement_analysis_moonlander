@@ -59,7 +59,7 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, time_wind
     if end_time is None:
         end_time = input_data.time_played.iloc[-2]
         start_time = max(0, end_time - time_window)  # start_time cannot be smaller than 0
-    #print(f"start_time: {start_time}, end_time: {end_time}")
+    print(start_time, end_time)
     # subset data by given time interval
     input_data_ = input_data[input_data.time_played.between(start_time, end_time)]
     eye_data_ = eye_data[eye_data.time_tag.between(start_time, end_time)]
