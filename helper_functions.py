@@ -205,24 +205,24 @@ def pre_process_eye_data(eye_data, screen_width_in_mm=595, screen_height_in_mm=3
 
 def point_estimate(data):
     """
-    function for estimating point of maximum for kde
+    function for estimating point of maximum density for passed data
     """
     try:
         kde = st.gaussian_kde(data)  # gaussian kernel
         n_samples = 1000  # arbitrarily high number of samples
-        samples = np.linspace(min(data), max(data), n_samples)  # sampling
-        probs = kde.evaluate(samples)
-        point_estimate_y = max(probs)
+        samples = kde.resample(n_samples)[0]  # sampling
+        steps = np.linspace(min(data), max(data), n_samples)  # building space
+        probs = kde.evaluate(steps)  # get likelihood for every step in space
+        point_estimate_y = max(probs)  # get highest likelihood value
         point_estimate_index = probs.argmax()
-        point_estimate_x = samples[point_estimate_index]
+        point_estimate_x = steps[point_estimate_index]
         hdi = az.hdi(samples,
                      hdi_prob=0.25)  # compute hpdi (I went for the smallest interval which contains 25% of the mass)
-
-        return point_estimate_x, point_estimate_y, hdi[0], hdi[1]
+        return point_estimate_x, point_estimate_y, hdi[0], hdi[1], samples
     except np.linalg.LinAlgError:
         print("SingularMatrixError; numpy.linalg.LinAlgError: singular matrix; no variance in data")
 
-        return data.iloc[0], data.iloc[0], data.iloc[0], data.iloc[0]
+        return data.iloc[0], data.iloc[0], data.iloc[0], data.iloc[0], data.iloc[0]
 
 
 def get_dist_to_spaceship_fix_rest(eye_data, input_data):
