@@ -12,3 +12,6 @@ videos/*
 .Rhistory
 .ipynb_checkpoints
 data_analysis.ipynb
+situational_analysis.ipynb
+crash_success_runs.csv
+crash_success_runs_annotated.csv

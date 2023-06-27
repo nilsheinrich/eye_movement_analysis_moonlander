@@ -7,8 +7,8 @@ id_code = 'EU29TT1'  #'MO07LN1' #'AE07EM1'
 done_ = 'done'
 n_run = '46' #5
 arg_comb = '6FW' #'5TW'
-start_time = 34
-end_time = 38.7
+start_time = 35
+end_time = 40
 
 # call visualize function
 visualize_sequence(id_code=id_code, done_=done_, n_run=n_run, arg_comb=arg_comb, start_time=start_time, end_time=end_time, safe_ani=False)

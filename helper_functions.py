@@ -366,6 +366,3 @@ def get_dist_to_obstacles_sacc(eye_data, input_data, target_saccades='regress'):
             dists.append(min(obsDists))
 
     return dists
-
-
-
