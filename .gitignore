@@ -8,6 +8,7 @@ experimental_data/*
 input_data/*
 eye_data/*
 eye_data_pre_processed/*
+crash_runs/*
 videos/*
 .Rhistory
 .ipynb_checkpoints

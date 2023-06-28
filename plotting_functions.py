@@ -6,6 +6,7 @@ import scipy.stats as st
 import os
 import matplotlib.patches as mpatches
 import seaborn as sns
+from scipy.special import kl_div
 from helper_functions import point_estimate
 
 
@@ -713,3 +714,124 @@ def plot_saccade_amplitude_kde(eye_data_none, eye_data_weak, eye_data_strong, le
             f"{path_to_save_folder}saccade_amplitude_kde_{saccade_type}_level_{level}_drift_enabled_{drift_enabled}",
             dpi=300)
         plt.close()
+
+
+def situational_analysis(data, hpdi=0.25, safe_plot=False, debug=False):
+    """
+    :param data: crash_success_runs.csv - each row of data frame must contain cells with data points for metrics stated
+     in metric_columns; additionally run in which agent crashed must be stated as well as run in which situation was
+     successfully solved.
+    :param hpdi: highest probability density interval. Probability mass is plotted by highlighting area between bounds
+    :param safe_plot: whether to safe plot in plots/situations folder or not
+    :param debug: if debug - additional print statements of arrays of which KDEs are computed
+    and data points of arrays are included in plots
+
+    description: ...
+    """
+    colors = ["coral", "royalblue"]
+
+    # metrics we are interest in their difference from crash and success
+    metric_columns = ['fixDurs',
+                      'fixLocsY',
+                      'saccAmps',
+                      'distSpaceship_fix_rest',
+                      'distClosestObstacle_sacc_progress',
+                      'distClosestObstacle_sacc_regress',
+                      'distClosestObstacle_fix_explore']
+
+    # initiate empty columns for hdi_bounds and distances
+    for col in metric_columns:
+        data[f'{col}_bounds_crash_lbound'] = np.nan
+        data[f'{col}_bounds_crash_ubound'] = np.nan
+        data[f'{col}_bounds_success_lbound'] = np.nan
+        data[f'{col}_bounds_success_ubound'] = np.nan
+        data[f'{col}_distance'] = np.nan
+
+    # compute and plot kde for each _crash & _success pair of every metric
+    for index, row in data.iterrows():
+        for col in metric_columns:
+            # define arrays for respective data
+            array_crash = np.asarray(row[col + '_crash'])
+            array_success = np.asarray(row[col + '_success'])
+
+            # can only proceed if there are more than one data point
+            if (len(array_crash) > 1) & (len(array_success) > 1):
+
+                # we have to avoid having several times the same value in eather array
+                if all(value == array_crash[0] for value in array_crash):
+                    array_crash = np.array([array_crash[0], array_crash[0] - 0.00001])
+                if all(value == array_success[0] for value in array_success):
+                    array_success = np.array([array_success[0], array_success[0] - 0.00001])
+                # we will simply take the singular value and add a second nearly identical value to the array
+
+                if debug:
+                    print(f'array_crash: {array_crash}, array_success: {array_success}')
+
+                # Grid
+                fig, ax = plt.subplots(figsize=(12, 6))
+
+                # axis labels
+                ax.set_xlabel(col)
+                ax.set_ylabel("Density")
+
+                # concat arrays for boundaries
+                concat = np.concatenate((array_crash, array_success))
+
+                # define plot boundaries (with arbitrary space below and above)
+                lbound = min(concat)  # - 100
+                ubound = max(concat)  # + 100
+
+                # instatiate KDEs
+                kde_init = np.linspace(lbound, ubound, 100)
+
+                kde_crash = st.gaussian_kde(array_crash)
+                kde_success = st.gaussian_kde(array_success)
+                distance = np.sum(kl_div(kde_crash(kde_init), kde_success(kde_init)))
+                # distance = st.wasserstein_distance(kde_crash(kde_init), kde_success(kde_init))
+
+                ax.set_title(
+                    f"{col} densities; distance: {distance} ({row.code} - {row.level}{row.drift}{row.input_noise} - {row.trial})",
+                    fontdict={"fontweight": "bold"})
+
+                # plot boundaries
+                ax.set_xlim([lbound, ubound])
+
+                xaxis = np.linspace(lbound, ubound, 11)
+                ax.set_xticks(xaxis)
+
+                # determine point estimates and hdi bounds for 25% of probability mass
+                PE_crash, _, hpdi_lbound_crash, hpdi_ubound_crash, samples_crash = point_estimate(array_crash, hpdi=hpdi)
+                PE_success, _, hpdi_lbound_success, hpdi_ubound_success, samples_success = point_estimate(array_success, hpdi=hpdi)
+
+                data.at[index, f'{col}_bounds_crash_lbound'] = hpdi_lbound_crash
+                data.at[index, f'{col}_bounds_crash_ubound'] = hpdi_ubound_crash
+                data.at[index, f'{col}_bounds_success_lbound'] = hpdi_lbound_success
+                data.at[index, f'{col}_bounds_success_ubound'] = hpdi_ubound_success
+                data.at[index, f'{col}_distance'] = distance
+
+                # draw KDEs
+                ax.plot(kde_init, kde_crash(kde_init), color=colors[0], label='crash')
+                ax.plot(kde_init, kde_success(kde_init), color=colors[1], label='success')
+
+                if debug:
+                    for p in samples_crash:
+                        ax.plot(p, 0, '.', color=colors[0])
+                    for p in samples_success:
+                        ax.plot(p, 0, '|', color=colors[1])
+
+                # draw point estimates
+                ax.axvline(PE_crash, color=colors[0])
+                ax.axvline(PE_success, color=colors[1])
+
+                # draw HPDIs
+                ax.axvspan(hpdi_lbound_crash, hpdi_ubound_crash, alpha=0.2, color=colors[0])
+                ax.axvspan(hpdi_lbound_success, hpdi_ubound_success, alpha=0.2, color=colors[1])
+
+                ax.legend()
+
+                if safe_plot:
+                    plt.savefig(
+                        f"{os.getcwd()}/plots/situations/{col} - {row.code} - {row.level}{row.drift}{row.input_noise} - {row.trial}",
+                        dpi=300)
+                    plt.close()
+    return data

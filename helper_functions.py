@@ -68,7 +68,7 @@ def pre_process_input_data(dataframe):
     # flagging drift onset (and second drift onset)
     # condition for drift onset
     cond = (dataframe["visible_drift_tiles"].str.len() != 0) & (
-                dataframe["visible_drift_tiles"].shift(1).str.len() == 0)
+            dataframe["visible_drift_tiles"].shift(1).str.len() == 0)
 
     # have =1 everywhere condition applies and =0 where not
     dataframe["drift_tile_onset"] = np.where(cond, 1, 0)
@@ -114,22 +114,35 @@ def calc_saccade_direction(saccade_rows):
 
     saccade_rows.saccade_direction_x = saccade_rows.apply(lambda x: x_direction, axis=1)
     saccade_rows.saccade_direction_y = saccade_rows.apply(lambda x: y_direction, axis=1)
-    saccade_rows.saccade_amplitude = saccade_rows.apply(
+    saccade_rows.saccade_amplitude_in_pixel = saccade_rows.apply(
         lambda x: np.sqrt(np.power(x_direction, 2) + np.power(y_direction, 2)), axis=1)
 
     return saccade_rows
 
 
+def pixel_to_degree(distance_on_screen_pixel, mm_per_pixel=595 / 1920, distance_to_screen_mm=770):
+    """
+    calculate the visual degrees of a distance (saccade amplitude, on screen distance between objects)
+    setup:
+     - screen_width_in_mm=595
+     - screen_height_in_mm=335
+     - pixels_screen_width=1920
+     - pixels_screen_height=1080
+     - distance_to_screen_in_mm=770
+    """
+    distance_on_screen_mm = float(distance_on_screen_pixel) * mm_per_pixel
+
+    visual_angle_in_radians = np.arctan(distance_on_screen_mm / distance_to_screen_mm)
+
+    return np.rad2deg(visual_angle_in_radians)
+
+
 # annotate eye_tracking data
 
-def pre_process_eye_data(eye_data, screen_width_in_mm=595, screen_height_in_mm=335, pixels_width=1920,
-                         pixels_height=1080, distance_to_screen_in_mm=770):
+def pre_process_eye_data(eye_data):
     """
     dataframe must be pandas dataFrame with appropriate columns...
     """
-
-    # calc how many pixels are within 1 mm on screen
-    pixels_in_mm = ((pixels_width / screen_width_in_mm) + (pixels_height / screen_height_in_mm)) / 2
 
     # adjust time tag to start at 0
     eye_data["time_tag"] = eye_data.TimeTag - eye_data.TimeTag[0]
@@ -191,11 +204,11 @@ def pre_process_eye_data(eye_data, screen_width_in_mm=595, screen_height_in_mm=3
     # insert saccade direction column
     eye_data["saccade_direction_x"] = np.nan
     eye_data["saccade_direction_y"] = np.nan
-    eye_data["saccade_amplitude"] = np.nan
+    eye_data["saccade_amplitude_in_pixel"] = np.nan
     out = eye_data.groupby("N_saccade", dropna=False).apply(calc_saccade_direction)
 
     # convert saccade amplitude from pixels to visual angle (°)
-    # eye_data["saccade_amplitude_visual_angle"] =
+    out["saccade_amplitude"] = out.saccade_amplitude_in_pixel.apply(lambda x: pixel_to_degree(x))
 
     # set saccade direction to NaN everywhere where there is no saccade
     out.loc[eye_data.Saccade < 1.0, ["saccade_direction_x", "saccade_direction_y"]] = np.nan
@@ -203,7 +216,7 @@ def pre_process_eye_data(eye_data, screen_width_in_mm=595, screen_height_in_mm=3
     return out
 
 
-def point_estimate(data):
+def point_estimate(data, hpdi=0.25):
     """
     function for estimating point of maximum density for passed data
     """
@@ -216,8 +229,9 @@ def point_estimate(data):
         point_estimate_y = max(probs)  # get highest likelihood value
         point_estimate_index = probs.argmax()
         point_estimate_x = steps[point_estimate_index]
-        hdi = az.hdi(samples,
-                     hdi_prob=0.25)  # compute hpdi (I went for the smallest interval which contains 25% of the mass)
+
+        # compute hpdi - computing boarders for the smallest interval which contains hpdi(%) of the mass
+        hdi = az.hdi(samples, hdi_prob=hpdi)
         return point_estimate_x, point_estimate_y, hdi[0], hdi[1], samples
     except np.linalg.LinAlgError:
         print("SingularMatrixError; numpy.linalg.LinAlgError: singular matrix; no variance in data")
@@ -262,7 +276,7 @@ def get_dist_to_spaceship_fix_rest(eye_data, input_data):
 
         # compute distance to spaceship for each regressive saccade
         dist = np.power(playerPosX - row.eyeX, 2) + np.power(playerPosY - row.eyeY, 2)
-        dists.append(dist)
+        dists.append(pixel_to_degree(dist))
 
     return dists
 
@@ -303,7 +317,7 @@ def get_dist_to_obstacles_fix_explore(eye_data, input_data):
         obsDists = []
         for obstacle in input_row.visible_obstacles.values[0]:
             dist = np.power(obstacle[0] - row.eyeX, 2) + np.power(obstacle[1] - row.eyeY, 2)
-            obsDists.append(dist)
+            obsDists.append(pixel_to_degree(dist))
         # the shortest distance is the obstacle most likely in focus of visual attention
         if len(obsDists) > 0:
             dists.append(min(obsDists))
@@ -348,9 +362,9 @@ def get_dist_to_obstacles_sacc(eye_data, input_data, target_saccades='regress'):
 
     # filtering for target saccades
     if target_saccades == 'regress':
-        temp_df_targets = temp_df[temp_df.regressiveSaccade is True]
+        temp_df_targets = temp_df[temp_df.regressiveSaccade == True]
     elif target_saccades == 'progress':
-        temp_df_targets = temp_df[temp_df.regressiveSaccade is False]
+        temp_df_targets = temp_df[temp_df.regressiveSaccade == False]
 
     for index, row in temp_df_targets.iterrows():
         # get row from input_data_ with closest match in time
@@ -360,7 +374,7 @@ def get_dist_to_obstacles_sacc(eye_data, input_data, target_saccades='regress'):
         obsDists = []
         for obstacle in input_row.visible_obstacles.values[0]:
             dist = np.power(obstacle[0] - row.saccadeLandX, 2) + np.power(obstacle[1] - row.saccadeLandY, 2)
-            obsDists.append(dist)
+            obsDists.append(pixel_to_degree(dist))
         # the shortest distance is the obstacle most likely in focus of visual attention
         if len(obsDists) > 0:
             dists.append(min(obsDists))
