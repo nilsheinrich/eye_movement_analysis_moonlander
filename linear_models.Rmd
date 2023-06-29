@@ -82,7 +82,7 @@ ICC_fixDur
 ICC_convergingEyeY <- 2124 / (2124 + 39657)
 ICC_convergingEyeY
 
-ICC_saccAmp <- 18006 / (18006 + 1191792)
+ICC_saccAmp <- 2.981 / (2.981 + 86.438)
 ICC_saccAmp
 
 ```
@@ -95,10 +95,18 @@ The VPixx eye tracker might have detected fixations where there are none, result
 # only considering fixations with duration > 0:
 data_fixations <- data_fixations[data_fixations$fixation_duration > 0, ]
 
+# distinguishing explorative and resting fixations
+x_sp = 972
+y_sp = 288
+
+threshold = 4.5*18
+
+data_fixations$distance_to_spaceship <- sqrt((data_fixations$converging_eye_x_adjusted - x_sp)**2 + (data_fixations$converging_eye_y_adjusted - y_sp)**2)
+
 # subsetting exploring fixations
-explorative_fixations <- data_fixations[data_fixations$exploring_fixation == 1, ]
+explorative_fixations <- data_fixations[data_fixations$distance_to_spaceship > threshold, ]
 # vs. fixations resting in front of spaceship
-resting_fixations <- data_fixations[data_fixations$exploring_fixation == 0, ]
+resting_fixations <- data_fixations[data_fixations$distance_to_spaceship < threshold, ]
 
 ```
 

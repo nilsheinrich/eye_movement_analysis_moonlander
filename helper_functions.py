@@ -242,8 +242,7 @@ def point_estimate(data, hpdi=0.25):
 def get_dist_to_spaceship_fix_rest(eye_data, input_data):
     """
     For each resting fixation the appropriate row in input_data is checked for the position of the spaceship.
-    Computes the euclidean distance of converging point of eyes and spaceship and squares individual components (x and
-    y).
+    Computes the euclidean distance of converging point of eyes and spaceship (sqrt of squared x and y).
     Returns array of distances.
 
     eye_data and input_data must be already subsetted to the desired time period. If you want the distances
@@ -275,7 +274,7 @@ def get_dist_to_spaceship_fix_rest(eye_data, input_data):
         playerPosY = input_row.player_pos.values[0][1]
 
         # compute distance to spaceship for each regressive saccade
-        dist = np.power(playerPosX - row.eyeX, 2) + np.power(playerPosY - row.eyeY, 2)
+        dist = np.sqrt(np.power(playerPosX - row.eyeX, 2) + np.power(playerPosY - row.eyeY, 2))
         dists.append(pixel_to_degree(dist))
 
     return dists
@@ -285,8 +284,7 @@ def get_dist_to_obstacles_fix_explore(eye_data, input_data):
     """
     For each exploring fixation the appropriate row in input_data is checked for the all obstacles on screen
     and their positions.
-    Computes the euclidean distance of converging point of eyes and the closest obstacle and squares individual
-    components (x and y).
+    Computes the euclidean distance of converging point of eyes and the closest obstacle (sqrt of squared x and y).
     Returns array of distances.
 
     eye_data and input_data must be already subsetted to the desired time period. If you want the distances
@@ -316,7 +314,7 @@ def get_dist_to_obstacles_fix_explore(eye_data, input_data):
         # compute distances of all obstacles on screen to saccade landing site
         obsDists = []
         for obstacle in input_row.visible_obstacles.values[0]:
-            dist = np.power(obstacle[0] - row.eyeX, 2) + np.power(obstacle[1] - row.eyeY, 2)
+            dist = np.sqrt(np.power(obstacle[0] - row.eyeX, 2) + np.power(obstacle[1] - row.eyeY, 2))
             obsDists.append(pixel_to_degree(dist))
         # the shortest distance is the obstacle most likely in focus of visual attention
         if len(obsDists) > 0:
@@ -332,8 +330,7 @@ def get_dist_to_obstacles_sacc(eye_data, input_data, target_saccades='regress'):
     progress for downwards saccades.
     For each target saccade the appropriate row in input_data is checked for the all obstacles on screen
     and their positions.
-    Computes the euclidean distance of the saccade landing site and the closest obstacle and squares individual
-    components (x and y).
+    Computes the euclidean distance of the saccade landing site and the closest obstacle (sqrt of squared x and y).
     Returns array of distances.
 
     eye_data and input_data must be already subsetted to the desired time period. If you want the distances
@@ -373,7 +370,7 @@ def get_dist_to_obstacles_sacc(eye_data, input_data, target_saccades='regress'):
         # compute distances of all obstacles on screen to saccade landing site
         obsDists = []
         for obstacle in input_row.visible_obstacles.values[0]:
-            dist = np.power(obstacle[0] - row.saccadeLandX, 2) + np.power(obstacle[1] - row.saccadeLandY, 2)
+            dist = np.sqrt(np.power(obstacle[0] - row.saccadeLandX, 2) + np.power(obstacle[1] - row.saccadeLandY, 2))
             obsDists.append(pixel_to_degree(dist))
         # the shortest distance is the obstacle most likely in focus of visual attention
         if len(obsDists) > 0:
