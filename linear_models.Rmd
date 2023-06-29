@@ -76,10 +76,10 @@ summary(null_saccAmp)
 ```
 ```{r ICCs, include=TRUE}
 
-ICC_fixDur <- 0.02035 / (0.02035 + 0.09764)
+ICC_fixDur <- 0.02036 / (0.02036 + 0.09764)
 ICC_fixDur
 
-ICC_convergingEyeY <- 2124 / (2124 + 39657)
+ICC_convergingEyeY <- 2125 / (2125 + 39658)
 ICC_convergingEyeY
 
 ICC_saccAmp <- 2.981 / (2.981 + 86.438)
@@ -96,17 +96,19 @@ The VPixx eye tracker might have detected fixations where there are none, result
 data_fixations <- data_fixations[data_fixations$fixation_duration > 0, ]
 
 # distinguishing explorative and resting fixations
-x_sp = 972
-y_sp = 288
+#x_sp = 972
+#y_sp = 288
 
-threshold = 4.5*18
+# 4° is half of the span of the parafovea. We will use that as the threshold (keeping the spaceship clearly visible vs. not)
+#threshold = 4
+##threshold = 4.5*18
 
-data_fixations$distance_to_spaceship <- sqrt((data_fixations$converging_eye_x_adjusted - x_sp)**2 + (data_fixations$converging_eye_y_adjusted - y_sp)**2)
+#data_fixations$distance_to_spaceship <- sqrt((data_fixations$converging_eye_x_adjusted - x_sp)**2 + (data_fixations$converging_eye_y_adjusted - y_sp)**2)
 
 # subsetting exploring fixations
-explorative_fixations <- data_fixations[data_fixations$distance_to_spaceship > threshold, ]
+explorative_fixations <- data_fixations[data_fixations$exploring_fixation == 1, ]
 # vs. fixations resting in front of spaceship
-resting_fixations <- data_fixations[data_fixations$distance_to_spaceship < threshold, ]
+resting_fixations <- data_fixations[data_fixations$exploring_fixation == 0, ]
 
 ```
 
@@ -129,10 +131,10 @@ summary(null_2)
 
 ```{r ICCs_explore, include=TRUE}
 
-ICC_fixDur_explore <- 0.01516 / (0.01516 + 0.10191)
+ICC_fixDur_explore <- 0.02011 / (0.02011 + 0.09011)
 ICC_fixDur_explore
 
-ICC_convergingEyeY_explore <- 4751 / (4751 + 23696)
+ICC_convergingEyeY_explore <- 2209 / (2209 + 44888)
 ICC_convergingEyeY_explore
 
 
@@ -182,7 +184,7 @@ summary(fixDur_rest)
 
 ```
 
-Discussing the results: We find effects for drift (True vs. False) as well as for input_noise:weak. Strangely no effect for input_noise:strong. This might tell us that how we differentiate between resting and exploring fixations might be off. We also find interaction effects for level_difficulty*drift. Awesome because we find no effects for level_difficulty individually. Neither medium nor hard.
+Discussing the results: We find effects for drift (True vs. False) as well as both levels of level_difficulty. We find no effects for either one of input_noise:weak or input_noise:strong. We also find an interaction effect for level_difficulty(hard)*drift.
 
 ## fixation location
 
@@ -205,7 +207,7 @@ summary(fixloc_explore)
 
 ```
 
-Discussing the results: Hm we find effects for both levels (weak and strong) of input noise. Good! But then we find an effect for level_difficulty:medium, but not for strong as well as an interaction effect for drift and level_difficulty:strong, but the interaction with level_difficulty:medium is not significant. Weird...
+Discussing the results: Hm we find no effects for both levels (weak and strong) of input noise. Weird! But then we find an effect for level_difficulty:hard, but not for medium (marginally significant); as well as interaction effects for drift and both levels of level_difficulty.
 
 ```{r fixation_location_rest, include=TRUE}
 
@@ -214,7 +216,7 @@ summary(fixloc_rest)
 
 ```
 
-Discussing the results: Here everything is significant. Damn. That's not what we want to see...
+Discussing the results: Here nearly everything is significant. We only find no significant effect for input_noise:weak as well as the interaction effect of drift*level_difficulty:medium. FixLocY might therefore be a metric for input_noise (SoC) in case of string pertubations.
 
 # Saccades
 
@@ -222,7 +224,8 @@ Discussing the results: Here everything is significant. Damn. That's not what we
 
 # only considering fixations with duration > 0:
 data_saccades <- data_saccades[data_saccades$saccade_amplitude > 0 & data_saccades$saccade_amplitude < 1000, ]
-data_saccades <- na.omit(data_saccades)
+# filter saccades that have no saccade amplitude
+data_saccades <- data_saccades[!is.na(data_saccades$saccade_amplitude),]
 
 # subsetting progressive saccades
 progressive_saccades <- data_saccades[data_saccades$saccade_direction_y < 0, ]
