@@ -178,8 +178,8 @@ def pre_process_eye_data(eye_data, spaceship_center_x=972, spaceship_center_y=28
 
     # annotate distance to spaceship
     eye_data["distance_to_spaceship_in_pixel"] = np.sqrt(
-        (eye_data.converging_eye_x_adjusted - spaceship_center_x) ** 2 +
-        (eye_data.converging_eye_y_adjusted - spaceship_center_y) ** 2)
+        np.power((eye_data.converging_eye_x_adjusted - spaceship_center_x), 2) +
+        np.power((eye_data.converging_eye_y_adjusted - spaceship_center_y), 2))
     eye_data["distance_to_spaceship"] = eye_data['distance_to_spaceship_in_pixel'].apply(lambda x: pixel_to_degree(x))
 
     # annotate fixations exploring the scene (further than 4° visual angle from spaceship - outside of parafovea)
