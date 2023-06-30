@@ -21,7 +21,8 @@ metric_columns = ['fixDurs_crash',
                   'distClosestObstacle_sacc_regress_success',
                   'distClosestObstacle_fix_explore_success']
 
-for row in range(len(crash_success_runs)):
+
+for row in range(len(crash_success_runs[:2])):
 
     for col in metric_columns:
         cell = crash_success_runs.iloc[row][col]
@@ -36,4 +37,4 @@ for row in range(len(crash_success_runs)):
 
         crash_success_runs.at[row, f'{col}'] = cell
 
-situational_analysis(data=crash_success_runs, safe_plot=True)
+situational_analysis(data=crash_success_runs[:2], safe_plot=False)

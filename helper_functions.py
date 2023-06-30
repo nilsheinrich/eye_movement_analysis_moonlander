@@ -139,7 +139,7 @@ def pixel_to_degree(distance_on_screen_pixel, mm_per_pixel=595 / 1920, distance_
 
 # annotate eye_tracking data
 
-def pre_process_eye_data(eye_data):
+def pre_process_eye_data(eye_data, spaceship_center_x=972, spaceship_center_y=288):
     """
     dataframe must be pandas dataFrame with appropriate columns...
     """
@@ -176,8 +176,14 @@ def pre_process_eye_data(eye_data):
     eye_data["converging_eye_x_adjusted"] = eye_data.converging_eye_x + 960
     eye_data["converging_eye_y_adjusted"] = eye_data.converging_eye_y.apply(lambda x: x * (-1) + 540)
 
-    # annotate fixations exploring the scene
-    cond = (eye_data["fixationOnset"] == 1.0) & (eye_data["converging_eye_y_adjusted"] > 640)
+    # annotate distance to spaceship
+    eye_data["distance_to_spaceship_in_pixel"] = np.sqrt(
+        (eye_data.converging_eye_x_adjusted - spaceship_center_x) ** 2 +
+        (eye_data.converging_eye_y_adjusted - spaceship_center_y) ** 2)
+    eye_data["distance_to_spaceship"] = eye_data['distance_to_spaceship_in_pixel'].apply(lambda x: pixel_to_degree(x))
+
+    # annotate fixations exploring the scene (further than 4° visual angle from spaceship - outside of parafovea)
+    cond = (eye_data["fixationOnset"] == 1.0) & (eye_data["distance_to_spaceship"] > 4)
     # have =1 everywhere condition applies and =0 where not
     eye_data["exploring_fixation"] = np.where(cond, 1, 0)
 
