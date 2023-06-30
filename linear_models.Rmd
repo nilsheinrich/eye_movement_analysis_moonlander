@@ -285,7 +285,9 @@ hist(soc_data$SoC, breaks=7)
 # 1) done + drift*level_difficulty + input_noise
 # 2) drift*level_difficulty + input_noise + (1|done)
 
-soc_model <- lmer(SoC ~ done + drift*level_difficulty + input_noise + (1|ID),  data = soc_data)
+soc_model <- lmer(SoC ~ done + drift*level_difficulty + input_noise + (1|ID),  data = soc_data, REML = FALSE)
 summary(soc_model)
 #coef(soc_model)
 ```
+
+Discussing the results: ...

@@ -120,7 +120,7 @@ def calc_saccade_direction(saccade_rows):
     return saccade_rows
 
 
-def pixel_to_degree(distance_on_screen_pixel, mm_per_pixel=595 / 1920, distance_to_screen_mm=770):
+def pixel_to_degree(distance_on_screen_pixel, mm_per_pixel=595 / 1920, distance_to_screen_mm=840):
     """
     calculate the visual degrees of a distance (saccade amplitude, on screen distance between objects)
     setup:
@@ -128,7 +128,7 @@ def pixel_to_degree(distance_on_screen_pixel, mm_per_pixel=595 / 1920, distance_
      - screen_height_in_mm=335
      - pixels_screen_width=1920
      - pixels_screen_height=1080
-     - distance_to_screen_in_mm=770
+     - distance_to_screen_in_mm=840 ; Nikita measured 770mm
     """
     distance_on_screen_mm = float(distance_on_screen_pixel) * mm_per_pixel
 

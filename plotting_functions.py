@@ -32,22 +32,18 @@ def plot_kde_combined(input_data, eye_data, safe_plot=True, path_to_save_folder=
     # compute hpdi (I went for the smallest interval which contains 25% of the mass)
     input_data_hpdi_bounds = az.hdi(input_data_array, 0.25)
 
-
     # plot boundaries:
     lbound = 0
     ubound = input_data.iloc[-2].time_played  # second last row because last row is written to df AFTER SoC response given which may take time
-
 
     # instatiate KDEs
     kde_init = np.linspace(lbound, ubound, 100)
 
     input_data_kde = st.gaussian_kde(input_data_array)
 
-
     # Grid
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.set_title(f"Densities of events for level {level} (drift enabled = {drift_enabled}, input noise = {input_noise}, crashed = {input_data.iloc[-1].collision})", fontdict={"fontweight": "bold"})
-
 
     # axis labels
     ax.set_xlabel("Time played")
@@ -58,7 +54,6 @@ def plot_kde_combined(input_data, eye_data, safe_plot=True, path_to_save_folder=
     xaxis = np.linspace(lbound, ubound, 10)
     ax.set_xticks(xaxis)
 
-
     # Plotting
     colors = ["crimson", "limegreen", "royalblue"]
 
@@ -68,11 +63,10 @@ def plot_kde_combined(input_data, eye_data, safe_plot=True, path_to_save_folder=
 
     y_max = ax.get_ylim()[1]  # 0: bottom; 1: top
 
-
     # point estimates and HPDIs:
-    point_estimate_input_data = point_estimate(inputs.time_played)
+    point_estimate_input_data_x, point_estimate_input_data_y, _, __, ___ = point_estimate(inputs.time_played)
     #ax.axvspan(point_estimate_input_data[2], point_estimate_input_data[3], alpha=0.3, color=colors[0])
-    plt.vlines(point_estimate_input_data[0], ymin=0, ymax=point_estimate_input_data[1], color=colors[0])
+    plt.vlines(point_estimate_input_data_x, ymin=0, ymax=point_estimate_input_data_y, color=colors[0])
 
     # eye-movement behavior
     # progressive saccades
@@ -87,14 +81,14 @@ def plot_kde_combined(input_data, eye_data, safe_plot=True, path_to_save_folder=
     progressive_eye_data_points = pd.DataFrame(data=progressive_eye_data_points)
     ax.scatter(progressive_eye_data_points.x, progressive_eye_data_points.y, marker=".", color=colors[1])
 
-    point_estimate_progressive_eye_data = point_estimate(progressive_saccades.time_tag)
-    plt.vlines(point_estimate_progressive_eye_data[0], ymin=0, ymax=point_estimate_progressive_eye_data[1], color=colors[1])
+    point_estimate_progressive_eye_data_x, point_estimate_progressive_eye_data_y, _, __, ___ = point_estimate(progressive_saccades.time_tag)
+    plt.vlines(point_estimate_progressive_eye_data_x, ymin=0, ymax=point_estimate_progressive_eye_data_y, color=colors[1])
 
     # regressive saccades
     regressive_saccades = saccades.loc[saccades["saccade_direction_y"] >= 0]
     regressive_eye_data_array = np.asarray(regressive_saccades.time_tag)
 
-    regressive_eye_data_hpdi_bounds = az.hdi(regressive_eye_data_array, 0.25)
+    # regressive_eye_data_hpdi_bounds = az.hdi(regressive_eye_data_array, 0.25)
     regressive_eye_data_kde = st.gaussian_kde(regressive_eye_data_array)
     ax.plot(kde_init, regressive_eye_data_kde(kde_init), color=colors[2], label='regressive eye movements')
 
@@ -102,8 +96,8 @@ def plot_kde_combined(input_data, eye_data, safe_plot=True, path_to_save_folder=
     regressive_eye_data_points = pd.DataFrame(data=regressive_eye_data_points)
     ax.scatter(regressive_eye_data_points.x, regressive_eye_data_points.y, marker=".", color=colors[2])
 
-    point_estimate_regressive_eye_data = point_estimate(regressive_saccades.time_tag)
-    plt.vlines(point_estimate_regressive_eye_data[0], ymin=0, ymax=point_estimate_regressive_eye_data[1], color=colors[2])
+    point_estimate_regressive_eye_data_x, point_estimate_regressive_eye_data_y, _, __, ___ = point_estimate(regressive_saccades.time_tag)
+    plt.vlines(point_estimate_regressive_eye_data_x, ymin=0, ymax=point_estimate_regressive_eye_data_y, color=colors[2])
 
     ax.legend()
 
@@ -160,9 +154,9 @@ def plot_fixation_location_kde(eye_data_none, eye_data_weak, eye_data_strong, le
                               bw_adjust=0.4,
                               ax=ax)
 
-        y_coord = point_estimate(fixations.converging_eye_y)[0]
+        y_coord, _, __, ___, ____ = point_estimate(fixations.converging_eye_y)[0]
         ax.axhline(y_coord, color=colors[counter])
-        x_coord = point_estimate(fixations.converging_eye_x)[0]
+        x_coord, _, __, ___, ____ = point_estimate(fixations.converging_eye_x)[0]
         ax.axvline(x_coord, color=colors[counter])
 
         counter += 1
@@ -702,8 +696,8 @@ def plot_saccade_amplitude_kde(eye_data_none, eye_data_weak, eye_data_strong, le
         # ax.scatter(eye_data_points.x, eye_data_points.y, marker=".", color=colors[counter])
 
         # HPDIs:
-        point_estimate_eye_data = point_estimate(saccades.time_tag)
-        # plt.vlines(point_estimate_eye_data[0], ymin=0, ymax=point_estimate_eye_data[1], color=colors[counter])
+        point_estimate_eye_data_x, point_estimate_eye_data_y, _, __, ___ = point_estimate(saccades.time_tag)
+        # plt.vlines(point_estimate_eye_data_x, ymin=0, ymax=point_estimate_eye_data_y, color=colors[counter])
 
         counter += 1
 
