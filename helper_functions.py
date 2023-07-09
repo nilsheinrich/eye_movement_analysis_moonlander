@@ -65,6 +65,13 @@ def pre_process_input_data(dataframe):
     # joining dataframes
     dataframe = dataframe.merge(rows_with_input_direction, on="frame", how='left')
 
+    # include input_duration for every button press
+    try:
+        dataframe['input_duration'] = np.nan
+        dataframe['input_duration'] = dataframe.groupby('N_input')['time_played'].transform(lambda x: max(x) - min(x))
+    except ValueError:
+        print("ValueError: Length mismatch: Expected axis has X elements, new values have Y elements")
+
     # flagging drift onset (and second drift onset)
     # condition for drift onset
     cond = (dataframe["visible_drift_tiles"].str.len() != 0) & (
