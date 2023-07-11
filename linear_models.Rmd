@@ -291,3 +291,60 @@ summary(soc_model)
 ```
 
 Discussing the results: ...
+
+# Input data (input duration)
+```{r input_data, include=TRUE}
+
+input_data <- read_csv("input_data/input_data.csv")
+
+# filtering
+input_data <- input_data[input_data$input_duration > 0.033 & input_data$input_duration < 2.45, ]
+input_data <- input_data %>% filter(!is.na(input_duration))
+
+fit.gamma <- fitdist(input_data$input_duration, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+hist(input_data$input_duration, breaks=200)
+
+```
+
+We will stick with the gamma dist.
+
+```{r input_data_null, include=TRUE}
+
+input_duration.null_fit <- glmer(input_duration ~ 1 + (1|ID),  data = input_data, family = Gamma)
+summary(input_duration.null_fit)
+
+```
+
+## ICC for subject in inputduration
+```{r data, include=TRUE}
+
+ICC_input_dur <- 0.7201 / (0.7201 + 0.7758)
+ICC_input_dur
+
+```
+
+ID explains a huge chunk of the variance in the input_duration data. We will therefore include it as random intercept effect.
+
+```{r input_data_fit, include=TRUE}
+
+input_duration.fit <- glmer(input_duration ~ N_visible_obstacles + N_visible_drift_tiles + (1|ID),  data = input_data, family = Gamma)
+summary(input_duration.fit)
+
+```
+
+Discussing the results: We find consistent effects for both our fixed effects. For each obstacle on screen the input duration decreases only a little bit, but still significantly. For every drift tile on screen however, the input duration decreases by a huge chunk. That is also due to there can only be a maximum of 2 drift tiles on screen (0 vs. 1 vs. 2), whereas obstacles vary largely (0 - 12?).
+For Nobstacles, this may be due to simply there is less free space and thus the ways are shorter, resulting in shorter input. For Ndrift, this is more tricky. Do the players learn to incorporate drift into their action planning, resulting in shorter input solely due to using drift as 'passive' input.
+
+```{r input_noise, include=TRUE}
+
+input_duration.fit <- glmer(input_duration ~ input_noise + (1|ID),  data = input_data, family = Gamma)
+summary(input_duration.fit)
+
+```
+
+Discussing the results: We find no effect of input_noise:weak for input_duration. However, if input_noise:strong is present, the input_duration increases! We would have thought different: the input_duration decreases to enable some kind of visual verification. Maybe humans do not rely so much on an ongoing regulatory process (visually matching with updated intended position) but more on an initially layed out plan.
+
+
+
