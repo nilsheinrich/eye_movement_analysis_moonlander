@@ -37,4 +37,4 @@ for row in range(len(crash_success_runs[:2])):
 
         crash_success_runs.at[row, f'{col}'] = cell
 
-situational_analysis(data=crash_success_runs[:2], safe_plot=False)
+situational_analysis(data=crash_success_runs[:2], safe_plot=False, debug=False)

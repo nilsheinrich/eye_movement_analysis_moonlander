@@ -749,7 +749,7 @@ def situational_analysis(data, hpdi=0.25, safe_plot=False, debug=False):
             array_success = np.asarray(row[col + '_success'])
 
             # can only proceed if there are more than one data point
-            print(f'crash: {array_crash}, success: {array_success}')
+            #print(f'crash: {array_crash}, success: {array_success}')
             if (len(array_crash) > 1) & (len(array_success) > 1):
 
                 # we have to avoid having several times the same value in eather array
@@ -810,9 +810,9 @@ def situational_analysis(data, hpdi=0.25, safe_plot=False, debug=False):
 
                 if debug:
                     for p in samples_crash:
-                        ax.plot(p, 0, '.', color=colors[0])
+                        ax.plot(p, 0, '|', color=colors[0])
                     for p in samples_success:
-                        ax.plot(p, 0, '|', color=colors[1])
+                        ax.plot(p, 0, '.', color=colors[1])
 
                 # draw point estimates
                 ax.axvline(PE_crash, color=colors[0])
@@ -829,5 +829,6 @@ def situational_analysis(data, hpdi=0.25, safe_plot=False, debug=False):
                         f"{os.getcwd()}/plots/situations/{col} - {row.code} - {row.level}{row.drift}{row.input_noise} - {row.trial}",
                         dpi=300)
                     plt.close()
-                #plt.show()
+                if debug:
+                    plt.show()
     return data

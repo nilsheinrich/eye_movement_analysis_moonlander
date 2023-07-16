@@ -101,7 +101,6 @@ data_fixations <- data_fixations[data_fixations$fixation_duration > 0, ]
 
 # 4° is half of the span of the parafovea. We will use that as the threshold (keeping the spaceship clearly visible vs. not)
 #threshold = 4
-##threshold = 4.5*18
 
 #data_fixations$distance_to_spaceship <- sqrt((data_fixations$converging_eye_x_adjusted - x_sp)**2 + (data_fixations$converging_eye_y_adjusted - y_sp)**2)
 
@@ -112,7 +111,7 @@ resting_fixations <- data_fixations[data_fixations$exploring_fixation == 0, ]
 
 ```
 
-In the following we will investigate effects for fixation durations as well as fixation locations only of the vertical axis.
+In the following we will investigate effects for fixation duration as well as fixation location only of the vertical axis.
 
 ### Explorative fixations
 We will explore ID as random intercept effect specifically for explorative fixations first. 
@@ -139,6 +138,8 @@ ICC_convergingEyeY_explore
 
 
 ```
+
+We will definitely keep ID as random intercept effect for fixation duration. For fixation location y, there might be room to argue both ways. We will simply keep it in the model.
 
 ## fixation duration
 
@@ -172,6 +173,9 @@ summary(fixDur_explore)
 #coef(fixDur_explore)
 #coef(fixDur_explore.free_slope). # when freeing slope for input noise, we can actually see single individuals skewing the coefficients for input noise
 
+fixDur_explore <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = explorative_fixations, family = Gamma)
+summary(fixDur_explore)
+
 ```
 
 Discussing the results: ...
@@ -180,6 +184,10 @@ Then for resting fixations...
 ```{r fixation_duration_rest, include=TRUE}
 
 fixDur_rest <- glmer(fixation_duration ~ drift*level_difficulty + input_noise + (1|ID),  data = resting_fixations, family = Gamma)
+summary(fixDur_rest)
+
+# N_obs & N_drifts
+fixDur_rest <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = resting_fixations, family = Gamma)
 summary(fixDur_rest)
 
 ```
@@ -205,6 +213,10 @@ We stick to our fixed effects model structure and fit a model for exploring and 
 fixloc_explore <- lmer(converging_eye_y ~ drift*level_difficulty + input_noise + (1|ID),  data = explorative_fixations, REML = FALSE)
 summary(fixloc_explore)
 
+# N_obs & N_drifts
+fixloc_explore <- lmer(converging_eye_y ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = explorative_fixations, REML = FALSE)
+summary(fixloc_explore)
+
 ```
 
 Discussing the results: Hm we find no effects for both levels (weak and strong) of input noise. Weird! But then we find an effect for level_difficulty:hard, but not for medium (marginally significant); as well as interaction effects for drift and both levels of level_difficulty.
@@ -212,6 +224,10 @@ Discussing the results: Hm we find no effects for both levels (weak and strong) 
 ```{r fixation_location_rest, include=TRUE}
 
 fixloc_rest <- lmer(converging_eye_y ~ drift*level_difficulty + input_noise + (1|ID),  data = resting_fixations, REML = FALSE)
+summary(fixloc_rest)
+
+# N_obs & N_drifts
+fixloc_rest <- lmer(converging_eye_y ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = resting_fixations, REML = FALSE)
 summary(fixloc_rest)
 
 ```
@@ -223,7 +239,7 @@ Discussing the results: Here nearly everything is significant. We only find no s
 ```{r filtering_saccades, include=TRUE}
 
 # only considering fixations with duration > 0:
-data_saccades <- data_saccades[data_saccades$saccade_amplitude > 0 & data_saccades$saccade_amplitude < 1000, ]
+data_saccades <- data_saccades[data_saccades$saccade_amplitude > 0 & data_saccades$saccade_amplitude < 27, ]
 # filter saccades that have no saccade amplitude
 data_saccades <- data_saccades[!is.na(data_saccades$saccade_amplitude),]
 
@@ -247,14 +263,27 @@ hist(data_saccades$saccade_amplitude, breaks=200)
 min(data_saccades$saccade_amplitude)
 ```
 
-```{r saccade_amplitude, include=TRUE}
+```{r saccade_amplitude_progress, include=TRUE}
 
 # subsetting exploring fixations
 saccamp_progress <- lmer(saccade_amplitude ~ drift*level_difficulty + input_noise + (1|ID),  data = progressive_saccades, REML = FALSE)
 summary(saccamp_progress)
 
+# N_obs & N_drifts
+saccamp_progress <- lmer(saccade_amplitude ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = progressive_saccades, REML = FALSE)
+summary(saccamp_progress)
+
+```
+
+
+```{r saccade_amplitude_regress, include=TRUE}
+
 # vs. fixations resting in front of spaceship
 saccamp_regress <- lmer(saccade_amplitude ~ drift*level_difficulty + input_noise + (1|ID),  data = regressive_saccades, REML = FALSE)
+summary(saccamp_regress)
+
+# N_obs & N_drifts
+saccamp_regress <- lmer(saccade_amplitude ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = regressive_saccades, REML = FALSE)
 summary(saccamp_regress)
 
 ```
@@ -276,6 +305,7 @@ soc_data$level_difficulty <- as.factor(soc_data$level_difficulty)
 soc_data <- within(soc_data, level_difficulty <- relevel(level_difficulty, ref = "easy"))
 
 hist(soc_data$SoC, breaks=7)
+table(soc_data$SoC)
 
 ```
 
@@ -329,14 +359,15 @@ ID explains a huge chunk of the variance in the input_duration data. We will the
 
 ```{r input_data_fit, include=TRUE}
 
-input_duration.fit <- glmer(input_duration ~ N_visible_obstacles + N_visible_drift_tiles + (1|ID),  data = input_data, family = Gamma)
+input_duration.fit <- glmer(input_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = input_data, family = Gamma)
 summary(input_duration.fit)
 
 ```
 
-Discussing the results: We find consistent effects for both our fixed effects. For each obstacle on screen the input duration decreases only a little bit, but still significantly. For every drift tile on screen however, the input duration decreases by a huge chunk. That is also due to there can only be a maximum of 2 drift tiles on screen (0 vs. 1 vs. 2), whereas obstacles vary largely (0 - 12?).
+Discussing the results: We find consistent effects for both our fixed effects. For each obstacle on screen the input duration decreases only a little bit, but still significantly. For every drift tile on screen however, the input duration decreases by a huge chunk. That is also due to there can only be a maximum of 2 drift tiles on screen (0 vs. 1 vs. 2), whereas obstacles vary largely (0 - 12?). For both levels of input noise, we find no significant difference to the intercept.
 For Nobstacles, this may be due to simply there is less free space and thus the ways are shorter, resulting in shorter input. For Ndrift, this is more tricky. Do the players learn to incorporate drift into their action planning, resulting in shorter input solely due to using drift as 'passive' input.
 
+We will isolate the effect solely for input noise in our next model:
 ```{r input_noise, include=TRUE}
 
 input_duration.fit <- glmer(input_duration ~ input_noise + (1|ID),  data = input_data, family = Gamma)

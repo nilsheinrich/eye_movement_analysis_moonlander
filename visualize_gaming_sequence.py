@@ -115,7 +115,8 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, time_wind
         # draw each obstacle on canvas individually
         for index, obstacle in obstacles_data.iterrows():
             ax.plot(obstacle.x + obstacle_size / 2, obstacle.y + obstacle_size / 2, color='grey', marker='o',
-                    fillstyle='full', markersize=obstacle_size, alpha=0.8)
+                    fillstyle='full', markersize=obstacle_size/2, alpha=0.8)
+            # might be that markersize to small: check if radius (/2) or diameter (obstacle_size) is passed
 
         # draw each drift tile on canvas individually
         for index, drift_tile in drift_data.iterrows():
