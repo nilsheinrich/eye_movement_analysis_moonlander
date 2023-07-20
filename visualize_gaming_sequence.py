@@ -10,6 +10,9 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
+# square root of the marker size equals the diameter
+# obstacle_markersize =
+
 
 def visualize_sequence(id_code, done_, n_run, arg_comb, start_time=None, end_time=None, time_window=5, safe_ani=False):
     """
@@ -44,7 +47,7 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, time_wind
     :param end_time: point in time until when sequence shall be visualized
     :param time_window: time_window is an alternative argument to set range of to-be-visualized sequence
     :param safe_ani: True vs False - whether to export sequence to mp4
-    the other passed variables are parameters for visualization determined in config.py and should be fixed until experimental setup changes.
+    the other passed variables are parameters for visualization determined in config.py and should be fixed until the experimental setup changes.
     """
 
     # adjust visualization parameters by scaling
@@ -65,7 +68,7 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, time_wind
     eye_data_ = eye_data[eye_data.time_tag.between(start_time, end_time)]
     factor = math.floor(len(eye_data_) / len(input_data_))
 
-    # eliminate nans by replacing with preceeding value
+    # eliminate nans by replacing with preceding value
     eye_data_.converging_eye_x_adjusted.fillna(method='ffill', inplace=True)
     eye_data_.converging_eye_y_adjusted.fillna(method='ffill', inplace=True)
 
@@ -116,7 +119,7 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, time_wind
         for index, obstacle in obstacles_data.iterrows():
             ax.plot(obstacle.x + obstacle_size / 2, obstacle.y + obstacle_size / 2, color='grey', marker='o',
                     fillstyle='full', markersize=obstacle_size/2, alpha=0.8)
-            # might be that markersize to small: check if radius (/2) or diameter (obstacle_size) is passed
+            # marker size might be too small: check if radius (/2) or diameter (obstacle_size) is passed
 
         # draw each drift tile on canvas individually
         for index, drift_tile in drift_data.iterrows():

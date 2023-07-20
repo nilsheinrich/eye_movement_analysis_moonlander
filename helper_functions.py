@@ -229,13 +229,16 @@ def pre_process_eye_data(eye_data, spaceship_center_x=972, spaceship_center_y=28
     return out
 
 
-def point_estimate(data, hpdi=0.25):
+def point_estimate(data, hpdi=0.25, n_samples=1000):
     """
     function for estimating point of maximum density for passed data
+    :param data: data for which a KDE is instantiated and point estimates are derived
+    :param hpdi: highest probability density interval - boarders (upper and lower) will be returned where hpdi is
+    derived for samples
+    :param n_samples: number of samples which are sampled from KDE
     """
     try:
         kde = st.gaussian_kde(data)  # gaussian kernel
-        n_samples = 1000  # arbitrarily high number of samples
         samples = kde.resample(n_samples)[0]  # sampling
         steps = np.linspace(min(data), max(data), n_samples)  # building space
         probs = kde.evaluate(steps)  # get likelihood for every step in space
