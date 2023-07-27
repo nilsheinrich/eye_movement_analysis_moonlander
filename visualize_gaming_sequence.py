@@ -131,10 +131,9 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, time_wind
         eye_data_subset = eye_data_.iloc[(eye_data_['time_tag'] - current_input_data_frame.time_played).abs().argsort()[:factor]]
 
         # is Fixation happening throughout eye_data_subset? If yes then blue; no then red
-        fix_value = sum(eye_data_subset.Fixation)
-        eye_col = "royalblue"
-        if fix_value < 36:
-            eye_col = "crimson"
+        eye_col = "crimson"
+        if sum(eye_data_subset.Fixation) == factor:
+            eye_col = "royalblue"
 
         sns.kdeplot(x=eye_data_subset.converging_eye_x_adjusted,
                     y=eye_data_subset.converging_eye_y_adjusted,
