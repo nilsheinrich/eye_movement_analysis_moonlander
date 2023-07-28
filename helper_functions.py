@@ -127,6 +127,25 @@ def calc_saccade_direction(saccade_rows):
     return saccade_rows
 
 
+def calc_saccade_direction_adjusted(saccade_rows):
+    """
+    Need to be given pandas dataframe grouped by N_saccade.
+    Dataframe must have converging_eye_ _adjusted (x and y) and saccade_direction_ _adjusted.
+    Returned dataframe now holds direction vector of saccade in every row in column saccade direction.
+    """
+
+    # x-direction
+    x_direction = saccade_rows.iloc[-1].converging_eye_x_adjusted - saccade_rows.iloc[0].converging_eye_x_adjusted
+
+    # y-direction
+    y_direction = saccade_rows.iloc[-1].converging_eye_y_adjusted - saccade_rows.iloc[0].converging_eye_y_adjusted
+
+    saccade_rows.saccade_direction_x_adjusted = saccade_rows.apply(lambda x: x_direction, axis=1)
+    saccade_rows.saccade_direction_y_adjusted = saccade_rows.apply(lambda x: y_direction, axis=1)
+
+    return saccade_rows
+
+
 def pixel_to_degree(distance_on_screen_pixel, mm_per_pixel=595 / 1920, distance_to_screen_mm=840):
     """
     calculate the visual degrees of a distance (saccade amplitude, on screen distance between objects)
@@ -144,6 +163,39 @@ def pixel_to_degree(distance_on_screen_pixel, mm_per_pixel=595 / 1920, distance_
     return np.rad2deg(visual_angle_in_radians)
 
 
+def identify_action_goals(data):
+    """
+    data objects must be preprocessed; needs to have specific columns
+    """
+
+    # flag where progessive saccade landed:
+    # condition for progressive saccade landing site (last saccade frame)
+    cond = (data.saccade_direction_y < 0) & (data.Saccade.shift(-1) == 0.0)
+    data["progSaccLand"] = np.where(cond, 1, 0)
+
+    # flag where previously progressive saccade landed until saccade is initiated
+    cond = (data.progSaccLand.shift(1) == 1) & (data.Saccade.shift(-1) == 0.0)
+    data["postProgSacc"] = np.where(cond, 1, 0)
+
+    for rowID, row in data.iterrows():
+        previous_rowID = rowID - 1
+        next_rowID = rowID + 1
+
+        try:
+            if (data.iloc[previous_rowID].postProgSacc == 1) & (data.iloc[next_rowID].Saccade == 0.0):
+                data.loc[rowID, 'postProgSacc'] = 1
+        except IndexError:
+            pass
+
+    # flag action goals: when post progressive saccade and fixation
+    data['actionGoal'] = np.nan
+
+    cond = (data.postProgSacc == 1) & (data.Fixation == 1)
+    data["actionGoal"] = np.where(cond, 1, 0)
+
+    return data
+
+
 # annotate eye_tracking data
 
 def pre_process_eye_data(eye_data, spaceship_center_x=972, spaceship_center_y=288):
@@ -152,7 +204,8 @@ def pre_process_eye_data(eye_data, spaceship_center_x=972, spaceship_center_y=28
     """
 
     # adjust time tag to start at 0
-    eye_data["time_tag"] = eye_data.TimeTag - eye_data.TimeTag[0]
+    eye_data.insert(0, "time_tag", eye_data.TimeTag - eye_data.TimeTag[0])
+    #eye_data["time_tag"] = eye_data.TimeTag - eye_data.TimeTag[0]
 
     # annotate binocular fixations
     eye_data["Fixation"] = eye_data.LeftEyeFixationFlag + eye_data.RightEyeFixationFlag

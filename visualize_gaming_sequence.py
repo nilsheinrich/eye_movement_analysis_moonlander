@@ -3,15 +3,12 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-from helper_functions import pre_process_input_data, pre_process_eye_data, point_estimate
+from helper_functions import pre_process_input_data, pre_process_eye_data, point_estimate, identify_action_goals
 import matplotlib.animation as animation
 # bad practice but let's suppress warnings
 import warnings
 
 warnings.filterwarnings("ignore")
-
-# square root of the marker size equals the diameter
-# obstacle_markersize =
 
 
 def visualize_sequence(id_code, done_, n_run, arg_comb, start_time=None, end_time=None, time_window=5, safe_ani=False):
@@ -32,6 +29,7 @@ def visualize_sequence(id_code, done_, n_run, arg_comb, start_time=None, end_tim
 
     eye_data = pd.read_csv(f'experimental_data/{id_code}/eye_data/{id_code}_eye_tracking_output_{arg_comb}_{n_run:0>2}.csv', index_col=False)
     eye_data = pre_process_eye_data(eye_data)
+    eye_data = identify_action_goals(eye_data)
 
     # call visualize function
     render_gaming_sequence(input_data=input_data, eye_data=eye_data, start_time=start_time, end_time=end_time, time_window=time_window, safe_ani=safe_ani)
@@ -132,7 +130,7 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, time_wind
 
         # is Fixation happening throughout eye_data_subset? If yes then blue; no then red
         eye_col = "crimson"
-        if sum(eye_data_subset.Fixation) == factor:
+        if sum(eye_data_subset.actionGoal) == factor:
             eye_col = "royalblue"
 
         sns.kdeplot(x=eye_data_subset.converging_eye_x_adjusted,
