@@ -193,6 +193,14 @@ def identify_action_goals(data):
     cond = (data.postProgSacc == 1) & (data.Fixation == 1)
     data["actionGoal"] = np.where(cond, 1, 0)
 
+    # cluster action goal rows
+    cond = (data.actionGoal >= 1.0) & (data.actionGoal.shift(1) == 0.0)
+    data["actionGoalOnset"] = np.where(cond, 1, 0)
+
+    data['N_actionGoal'] = np.nan
+    data["N_actionGoal"] = (data["actionGoalOnset"] == 1).cumsum()
+    data.loc[data.Fixation < 1.0, "N_actionGoal"] = np.nan  # have NaN everywhere where there is no fixation
+
     return data
 
 
@@ -320,31 +328,47 @@ def get_dist_to_spaceship_fix_rest(eye_data, input_data):
     # empty list to-be-returned
     dists = []
 
-    timeTags = eye_data[eye_data.fixationOnset == 1].time_tag
+    if len(eye_data == 1):
+        timeTag = eye_data.time_tag
+        eyeX = eye_data.converging_eye_x_adjusted
+        eyeY = eye_data.converging_eye_y_adjusted
+        exploring = eye_data.exploring_fixation
 
-    eyeX = eye_data[eye_data.fixationOnset == 1].converging_eye_x_adjusted
-    eyeY = eye_data[eye_data.fixationOnset == 1].converging_eye_y_adjusted
+        if exploring == 0:
+            # get row from input_data_ with closest match in time
+            input_row = input_data.iloc[(input_data['time_played'] - timeTag).abs().argsort()[:1]]
 
-    exploring = eye_data[eye_data.fixationOnset == 1].exploring_fixation
+            # get player position n pixel
+            playerPosX = input_row.player_pos.values[0][0]
+            playerPosY = input_row.player_pos.values[0][1]
 
-    # putting together temp_df
-    temp = {'timeTag': timeTags, 'eyeX': eyeX, 'eyeY': eyeY, 'exploring_fixation': exploring}
-    temp_df = pd.DataFrame(data=temp)
+            # compute distance to spaceship for each regressive saccade
+            dists = np.sqrt(np.power(playerPosX - eyeX, 2) + np.power(playerPosY - eyeY, 2))
 
-    # only resting fixations are of interest for dist to spaceship
-    temp_df_rest = temp_df[temp_df["exploring_fixation"] == 0]
+    else:
+        timeTags = eye_data[eye_data.fixationOnset == 1].time_tag
+        eyeX = eye_data[eye_data.fixationOnset == 1].converging_eye_x_adjusted
+        eyeY = eye_data[eye_data.fixationOnset == 1].converging_eye_y_adjusted
+        exploring = eye_data[eye_data.fixationOnset == 1].exploring_fixation
 
-    for index, row in temp_df_rest.iterrows():
-        # get row from input_data_ with closest match in time
-        input_row = input_data.iloc[(input_data['time_played'] - row.timeTag).abs().argsort()[:1]]
+        # putting together temp_df
+        temp = {'timeTag': timeTags, 'eyeX': eyeX, 'eyeY': eyeY, 'exploring_fixation': exploring}
+        temp_df = pd.DataFrame(data=temp)
 
-        # get player position n pixel
-        playerPosX = input_row.player_pos.values[0][0]
-        playerPosY = input_row.player_pos.values[0][1]
+        # only resting fixations are of interest for dist to spaceship
+        temp_df_rest = temp_df[temp_df["exploring_fixation"] == 0]
 
-        # compute distance to spaceship for each regressive saccade
-        dist = np.sqrt(np.power(playerPosX - row.eyeX, 2) + np.power(playerPosY - row.eyeY, 2))
-        dists.append(pixel_to_degree(dist))
+        for index, row in temp_df_rest.iterrows():
+            # get row from input_data_ with closest match in time
+            input_row = input_data.iloc[(input_data['time_played'] - row.timeTag).abs().argsort()[:1]]
+
+            # get player position n pixel
+            playerPosX = input_row.player_pos.values[0][0]
+            playerPosY = input_row.player_pos.values[0][1]
+
+            # compute distance to spaceship for each regressive saccade
+            dist = np.sqrt(np.power(playerPosX - row.eyeX, 2) + np.power(playerPosY - row.eyeY, 2))
+            dists.append(pixel_to_degree(dist))
 
     return dists
 
@@ -362,32 +386,48 @@ def get_dist_to_obstacles_fix_explore(eye_data, input_data):
     # empty list to-be-returned
     dists = []
 
-    timeTags = eye_data[eye_data.fixationOnset == 1].time_tag
+    if len(eye_data == 1):
+        timeTag = eye_data.time_tag
+        eyeX = eye_data.converging_eye_x_adjusted
+        eyeY = eye_data.converging_eye_y_adjusted
+        exploring = eye_data.exploring_fixation
 
-    eyeX = eye_data[eye_data.fixationOnset == 1].converging_eye_x_adjusted
-    eyeY = eye_data[eye_data.fixationOnset == 1].converging_eye_y_adjusted
+        if exploring == 1:
+            # get row from input_data_ with closest match in time
+            input_row = input_data.iloc[(input_data['time_played'] - timeTag).abs().argsort()[:1]]
 
-    exploring = eye_data[eye_data.fixationOnset == 1].exploring_fixation
+            # get player position n pixel
+            playerPosX = input_row.player_pos.values[0][0]
+            playerPosY = input_row.player_pos.values[0][1]
 
-    # putting together temp_df
-    temp = {'timeTag': timeTags, 'eyeX': eyeX, 'eyeY': eyeY, 'exploring_fixation': exploring}
-    temp_df = pd.DataFrame(data=temp)
+            # compute distance to spaceship for each regressive saccade
+            dists = np.sqrt(np.power(playerPosX - eyeX, 2) + np.power(playerPosY - eyeY, 2))
 
-    # only exploring fixations are of interest for dist to obstacles
-    temp_df_explore = temp_df[temp_df["exploring_fixation"] == 1]
+    else:
+        timeTags = eye_data[eye_data.fixationOnset == 1].time_tag
+        eyeX = eye_data[eye_data.fixationOnset == 1].converging_eye_x_adjusted
+        eyeY = eye_data[eye_data.fixationOnset == 1].converging_eye_y_adjusted
+        exploring = eye_data[eye_data.fixationOnset == 1].exploring_fixation
 
-    for index, row in temp_df_explore.iterrows():
-        # get row from input_data_ with closest match in time
-        input_row = input_data.iloc[(input_data['time_played'] - row.timeTag).abs().argsort()[:1]]
+        # putting together temp_df
+        temp = {'timeTag': timeTags, 'eyeX': eyeX, 'eyeY': eyeY, 'exploring_fixation': exploring}
+        temp_df = pd.DataFrame(data=temp)
 
-        # compute distances of all obstacles on screen to saccade landing site
-        obsDists = []
-        for obstacle in input_row.visible_obstacles.values[0]:
-            dist = np.sqrt(np.power(obstacle[0] - row.eyeX, 2) + np.power(obstacle[1] - row.eyeY, 2))
-            obsDists.append(pixel_to_degree(dist))
-        # the shortest distance is the obstacle most likely in focus of visual attention
-        if len(obsDists) > 0:
-            dists.append(min(obsDists))
+        # only exploring fixations are of interest for dist to obstacles
+        temp_df_explore = temp_df[temp_df["exploring_fixation"] == 1]
+
+        for index, row in temp_df_explore.iterrows():
+            # get row from input_data_ with closest match in time
+            input_row = input_data.iloc[(input_data['time_played'] - row.timeTag).abs().argsort()[:1]]
+
+            # compute distances of all obstacles on screen to saccade landing site
+            obsDists = []
+            for obstacle in input_row.visible_obstacles.values[0]:
+                dist = np.sqrt(np.power(obstacle[0] - row.eyeX, 2) + np.power(obstacle[1] - row.eyeY, 2))
+                obsDists.append(pixel_to_degree(dist))
+            # the shortest distance is the obstacle most likely in focus of visual attention
+            if len(obsDists) > 0:
+                dists.append(min(obsDists))
 
     return dists
 
@@ -408,41 +448,65 @@ def get_dist_to_obstacles_sacc(eye_data, input_data, target_saccades='regress'):
     # empty list to-be-returned
     dists = []
 
-    timeTags = eye_data[eye_data.saccadeOnset == 1].time_tag
+    if len(eye_data == 1):
+        timeTag = eye_data.time_tag
+        eyeX = eye_data.converging_eye_x_adjusted
+        eyeY = eye_data.converging_eye_y_adjusted
+        saccDirX = eye_data.saccade_direction_y
+        saccDirY = eye_data.saccade_direction_y
 
-    eyeX = eye_data[eye_data.saccadeOnset == 1].converging_eye_x_adjusted
-    eyeY = eye_data[eye_data.saccadeOnset == 1].converging_eye_y_adjusted
+        # target saccades
+        if (target_saccades == 'progress' and saccDirY < 0) or (target_saccades == 'regress' and saccDirY > 0):
+            # get row from input_data_ with closest match in time
+            input_row = input_data.iloc[(input_data['time_played'] - timeTag).abs().argsort()[:1]]
 
-    saccDirX = eye_data[eye_data.saccadeOnset == 1].saccade_direction_x
-    saccDirY = eye_data[eye_data.saccadeOnset == 1].saccade_direction_y
+            # get player position n pixel
+            saccadeLandX = eyeX + saccDirX
+            saccadeLandY = eyeY + saccDirY
 
-    # putting together temp_df
-    temp = {'timeTag': timeTags, 'eyeX': eyeX, 'eyeY': eyeY, 'saccDirX': saccDirX, 'saccDirY': saccDirY}
-    temp_df = pd.DataFrame(data=temp)
+            # compute distance to spaceship for each regressive saccade
+            obsDists = []
+            for obstacle in input_row.visible_obstacles.values[0]:
+                dist = np.sqrt(np.power(obstacle[0] - saccadeLandX, 2) + np.power(obstacle[1] - saccadeLandY, 2))
+                obsDists.append(pixel_to_degree(dist))
+            # the shortest distance is the obstacle most likely in focus of visual attention
+            if len(obsDists) > 0:
+                dists.append(min(obsDists))
 
-    # flagging regressive saccades
-    temp_df['regressiveSaccade'] = np.where(temp_df['saccDirY'] < 0, True, False)
+    else:
+        timeTags = eye_data[eye_data.saccadeOnset == 1].time_tag
+        eyeX = eye_data[eye_data.saccadeOnset == 1].converging_eye_x_adjusted
+        eyeY = eye_data[eye_data.saccadeOnset == 1].converging_eye_y_adjusted
+        saccDirX = eye_data[eye_data.saccadeOnset == 1].saccade_direction_x
+        saccDirY = eye_data[eye_data.saccadeOnset == 1].saccade_direction_y
 
-    temp_df['saccadeLandX'] = temp_df.eyeX + temp_df.saccDirX
-    temp_df['saccadeLandY'] = temp_df.eyeY + temp_df.saccDirY
+        # putting together temp_df
+        temp = {'timeTag': timeTags, 'eyeX': eyeX, 'eyeY': eyeY, 'saccDirX': saccDirX, 'saccDirY': saccDirY}
+        temp_df = pd.DataFrame(data=temp)
 
-    # filtering for target saccades
-    if target_saccades == 'regress':
-        temp_df_targets = temp_df[temp_df.regressiveSaccade == True]
-    elif target_saccades == 'progress':
-        temp_df_targets = temp_df[temp_df.regressiveSaccade == False]
+        # flagging regressive saccades
+        temp_df['regressiveSaccade'] = np.where(temp_df['saccDirY'] < 0, True, False)
 
-    for index, row in temp_df_targets.iterrows():
-        # get row from input_data_ with closest match in time
-        input_row = input_data.iloc[(input_data['time_played'] - row.timeTag).abs().argsort()[:1]]
+        temp_df['saccadeLandX'] = temp_df.eyeX + temp_df.saccDirX
+        temp_df['saccadeLandY'] = temp_df.eyeY + temp_df.saccDirY
 
-        # compute distances of all obstacles on screen to saccade landing site
-        obsDists = []
-        for obstacle in input_row.visible_obstacles.values[0]:
-            dist = np.sqrt(np.power(obstacle[0] - row.saccadeLandX, 2) + np.power(obstacle[1] - row.saccadeLandY, 2))
-            obsDists.append(pixel_to_degree(dist))
-        # the shortest distance is the obstacle most likely in focus of visual attention
-        if len(obsDists) > 0:
-            dists.append(min(obsDists))
+        # filtering for target saccades
+        if target_saccades == 'regress':
+            temp_df_targets = temp_df[temp_df.regressiveSaccade == True]
+        elif target_saccades == 'progress':
+            temp_df_targets = temp_df[temp_df.regressiveSaccade == False]
+
+        for index, row in temp_df_targets.iterrows():
+            # get row from input_data_ with closest match in time
+            input_row = input_data.iloc[(input_data['time_played'] - row.timeTag).abs().argsort()[:1]]
+
+            # compute distances of all obstacles on screen to saccade landing site
+            obsDists = []
+            for obstacle in input_row.visible_obstacles.values[0]:
+                dist = np.sqrt(np.power(obstacle[0] - row.saccadeLandX, 2) + np.power(obstacle[1] - row.saccadeLandY, 2))
+                obsDists.append(pixel_to_degree(dist))
+            # the shortest distance is the obstacle most likely in focus of visual attention
+            if len(obsDists) > 0:
+                dists.append(min(obsDists))
 
     return dists
