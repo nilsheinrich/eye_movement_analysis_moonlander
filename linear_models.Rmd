@@ -19,22 +19,19 @@ library(fitdistrplus)
 ```
 
 
-```{r data, include=FALSE}
-#current_wd = getwd()
+```{r eye_data, include=FALSE}
+
+setwd('/Users/heinrich/Projects/eye_movement_analysis_moonlander/')
+
 data_fixations <- read_csv("eye_data/experimental_eye_data_fixations.csv")
 data_saccades <- read_csv("eye_data/experimental_eye_data_saccades.csv")
-```
-
-```{r descriptives, include=FALSE}
-
-unique(data_fixations$ID)
-unique(data_saccades$ID)
 
 ```
+We have data from 26 participants. Exclusion took place and will have to be specified here...
 
-```{r edit_data, include=TRUE}
+```{r edit_data, include=FALSE}
 
-## level difficulty
+# Most likely we won't use level difficulty as fixed effect. But we will nevertheless relevel it.
 
 # fixations
 data_fixations <- data_fixations %>%
@@ -56,8 +53,439 @@ data_saccades <- data_saccades %>%
 data_saccades$level_difficulty <- as.factor(data_saccades$level_difficulty)
 data_saccades <- within(data_saccades, level_difficulty <- relevel(level_difficulty, ref = "easy"))
 
+```
+
+# Predicting fixations
+
+Fixations may have served various functions. We will try to account for it and differentiate between resting and exploring fixations. 
+```{r splitting_fixations, include=TRUE}
+
+# only considering fixations with duration > 0:
+data_fixations <- data_fixations[data_fixations$fixation_duration > 0, ]
+# The eye tracker might have flagged single frames as fixations. These would have lasted no time and we will simply filter them out.
+
+# distinguishing exploring and resting fixations
+#x_sp = 972
+#y_sp = 288
+
+# 4° is half of the span of the parafovea. We will use that as the threshold (keeping the spaceship clearly visible vs. not)
+#threshold = 4
+
+#data_fixations$distance_to_spaceship <- sqrt((data_fixations$converging_eye_x_adjusted - x_sp)**2 + (data_fixations$converging_eye_y_adjusted - y_sp)**2)
+
+exploring_fixations <- data_fixations[data_fixations$exploring_fixation == 1, ]
+resting_fixations <- data_fixations[data_fixations$exploring_fixation == 0, ]
 
 ```
+
+## Resting fixations - Fixation duration
+
+```{r check_fixDur_rest_fit, include=TRUE}
+
+hist(resting_fixations$fixation_duration, breaks=200)
+
+fit.gamma <- fitdist(resting_fixations$fixation_duration, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+```
+
+```{r random_effects, include=TRUE}
+
+fixDur_rest_null <- lmer(fixation_duration ~ 1 + (1|ID), data=resting_fixations, REML=FALSE)
+summary(fixDur_rest_null)
+
+```
+
+```{r ICC_fixDur_rest, include=TRUE}
+
+ICC_fixDur_rest <- 0.02655 / (0.02655 + 0.10495)
+ICC_fixDur_rest
+
+```
+
+```{r fixation_duration_rest, include=TRUE}
+
+pred_fixDur_rest <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=resting_fixations, family = Gamma)
+
+pred_fixDur_rest.slope <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=resting_fixations, family = Gamma)
+
+pred_fixDur_rest.slope2 <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=resting_fixations, family = Gamma)
+
+anova(pred_fixDur_rest, pred_fixDur_rest.slope, pred_fixDur_rest.slope2)
+
+summary(pred_fixDur_rest)
+
+```
+
+## Resting fixations - Fixation location (distance to spaceship)
+
+```{r check_distSpaceship_rest_fit, include=TRUE}
+
+hist(resting_fixations$distance_to_spaceship, breaks=200)
+
+fit.gauss <- fitdist(c(na.exclude(resting_fixations$distance_to_spaceship)), distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
+
+```
+
+```{r random_effects, include=TRUE}
+
+distSpaceship_rest_null <- lmer(distance_to_spaceship ~ 1 + (1|ID), data=resting_fixations, REML=FALSE)
+summary(distSpaceship_rest_null)
+
+```
+
+```{r ICC_distSpaceship_rest, include=TRUE}
+
+ICC_distSpaceship_rest <- 0.07741 / (0.07741 + 1.00426)
+ICC_distSpaceship_rest
+
+```
+
+```{r distance_to_spaceship_rest, include=TRUE}
+
+pred_distSpaceship_rest <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=resting_fixations, REML = FALSE)
+
+pred_distSpaceship_rest.slope <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=resting_fixations, REML = FALSE)
+
+pred_distSpaceship_rest.slope2 <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=resting_fixations, REML = FALSE)  # does not converge
+
+anova(pred_distSpaceship_rest, pred_distSpaceship_rest.slope, pred_distSpaceship_rest.slope2)
+
+summary(pred_distSpaceship_rest.slope)
+
+```
+
+Discussing the results: ...
+
+## Exploring fixations - Fixation duration
+
+```{r check_fixDur_explore_fit, include=TRUE}
+
+hist(exploring_fixations$fixation_duration, breaks=200)
+
+fit.gamma <- fitdist(exploring_fixations$fixation_duration, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+```
+
+```{r random_effects, include=TRUE}
+
+fixDur_explore_null <- lmer(fixation_duration ~ 1 + (1|ID), data=exploring_fixations, REML=FALSE)
+summary(fixDur_explore_null)
+
+```
+
+```{r ICC_fixDur_explore, include=TRUE}
+
+ICC_fixDur_explore <- 0.02011 / (0.02011 + 0.09011)
+ICC_fixDur_explore
+
+```
+
+```{r fixation_duration_explore, include=TRUE}
+
+pred_fixDur_explore <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=exploring_fixations, family = Gamma)
+
+pred_fixDur_explore.slope <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=exploring_fixations, family = Gamma)
+
+pred_fixDur_explore.slope2 <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=exploring_fixations, family = Gamma)
+
+pred_fixDur_explore.slope3 <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+input_noise|ID), data=exploring_fixations, family = Gamma)
+
+anova(pred_fixDur_explore, pred_fixDur_explore.slope, pred_fixDur_explore.slope2, pred_fixDur_explore.slope3)
+
+summary(pred_fixDur_explore.slope3)
+
+```
+
+Discussing the results: ...
+
+## Exploring fixations - Fixation location (distance to spaceship)
+
+```{r check_distSpaceship_explore_fit, include=TRUE}
+
+hist(exploring_fixations$distance_to_spaceship, breaks=200)
+
+fit.gamma <- fitdist(c(na.exclude(exploring_fixations$distance_to_spaceship)), distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+```
+
+```{r random_effects, include=TRUE}
+
+distSpaceship_explore_null <- glmer(distance_to_spaceship ~ 1 + (1|ID), data=exploring_fixations, family = Gamma)
+summary(distSpaceship_explore_null)
+
+```
+
+```{r ICC_distSpaceship_explore, include=TRUE}
+
+ICC_distSpaceship_explore <- 0.0003975 / (0.0003975 + 0.3856651)
+ICC_distSpaceship_explore
+
+```
+
+```{r distance_to_spaceship_explore, include=TRUE}
+
+# ID does not explain variance in the predicted variable. We might therefore omit including it as random effect
+pred_distSpaceship_explore <- glm(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise, data=exploring_fixations, family = Gamma)
+summary(pred_distSpaceship_explore)
+
+# including random effects
+pred_distSpaceship_explore <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=exploring_fixations, REML = FALSE)
+#summary(pred_distSpaceship_explore)
+
+pred_distSpaceship_explore.slope <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=exploring_fixations, REML = FALSE)
+#summary(pred_distSpaceship_explore.slope)
+
+anova(pred_distSpaceship_explore, pred_distSpaceship_explore.slope)
+
+pred_distSpaceship_explore.slope2 <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=exploring_fixations, REML = FALSE)
+#summary(pred_distSpaceship_explore.slope2)
+
+#anova(pred_distSpaceship_explore, pred_distSpaceship_explore.slope, pred_distSpaceship_explore.slope2)
+
+#summary()
+
+```
+
+Discussing the results: ...
+
+# Predicting saccades
+
+Saccades may have served various functions. We will try to account for it and differentiate between progressive and regressive saccades. 
+```{r splitting_saccades, include=TRUE}
+
+data_saccades <- data_saccades[data_saccades$saccade_amplitude > 0 & data_saccades$saccade_amplitude < 27, ]
+# filter saccades that have no saccade amplitude
+data_saccades <- data_saccades[!is.na(data_saccades$saccade_amplitude),]
+
+progressive_saccades <- data_saccades[data_saccades$saccade_direction_y < 0, ]
+regressive_saccades <- data_saccades[data_saccades$saccade_direction_y > 0, ]
+
+```
+
+## Progressive saccades - Saccade amplitude
+
+```{r check_saccAmp_progress_fit, include=TRUE}
+
+hist(progressive_saccades$saccade_amplitude, breaks=200)
+
+fit.gamma <- fitdist(progressive_saccades$saccade_amplitude, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+```
+
+```{r random_effects, include=TRUE}
+
+saccAmp_progress_null <- glmer(saccade_amplitude ~ 1 + (1|ID), data=progressive_saccades, family = Gamma)
+summary(saccAmp_progress_null)
+
+```
+
+```{r ICC_saccAmp_progress, include=TRUE}
+
+ICC_saccAmp_progress <- 0.008486 / (0.008486 + 1.225939)
+ICC_saccAmp_progress
+
+```
+
+```{r saccAmp_progress, include=TRUE}
+
+# ID does not explain variance in the predicted variable. We might therefore omit including it as random effect
+pred_saccAmp_progress <- glm(saccade_amplitude ~ N_visible_obstacles * N_visible_drift_tiles + input_noise, data=progressive_saccades, family = Gamma)
+summary(pred_saccAmp_progress)
+
+```
+
+## Progressive saccades - distance to closest obstacle
+
+```{r check_distObs_progress_fit, include=TRUE}
+
+hist(progressive_saccades$saccLandSite_dist_to_closestObstacle, breaks=200)
+
+fit.gamma <- fitdist(c(na.exclude(progressive_saccades$saccLandSite_dist_to_closestObstacle)), distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+```
+
+```{r random_effects, include=TRUE}
+
+distObs_explore_null <- glmer(saccLandSite_dist_to_closestObstacle ~ 1 + (1|ID), data=progressive_saccades, family = Gamma)
+summary(distObs_explore_null)
+
+```
+
+```{r ICC_distObs_progress, include=TRUE}
+
+ICC_distObs_progress <- 0.00183 / (0.00183 + 0.79070)
+ICC_distObs_progress
+
+```
+
+```{r distObs_progress, include=TRUE}
+
+# ID does not explain variance in the predicted variable. We might therefore omit including it as random effect
+pred_distObs_progress <- glm(saccLandSite_dist_to_closestObstacle ~ N_visible_obstacles * N_visible_drift_tiles + input_noise, data=progressive_saccades, family = Gamma)
+summary(pred_distObs_progress)
+
+```
+
+## Regressive saccades - Saccade amplitude
+
+```{r check_saccAmp_regress_fit, include=TRUE}
+
+hist(regressive_saccades$saccade_amplitude, breaks=200)
+
+fit.gamma <- fitdist(regressive_saccades$saccade_amplitude, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+```
+
+```{r random_effects, include=TRUE}
+
+saccAmp_regress_null <- glmer(saccade_amplitude ~ 1 + (1|ID), data=regressive_saccades, family = Gamma)
+summary(saccAmp_regress_null)
+
+```
+
+```{r ICC_saccAmp_regress, include=TRUE}
+
+ICC_saccAmp_regress <- 0.06734 / (0.06734 + 2.29774)
+ICC_saccAmp_regress
+
+```
+
+```{r saccAmp_regress, include=TRUE}
+
+# ID does not explain variance in the predicted variable. We might therefore omit including it as random effect
+pred_saccAmp_regress <- glm(saccade_amplitude ~ N_visible_obstacles * N_visible_drift_tiles + input_noise, data=regressive_saccades, family = Gamma)
+summary(pred_saccAmp_progress)
+
+```
+
+## Regressive saccades - distance to spaceship
+
+```{r check_distSpaceship_regress_fit, include=TRUE}
+
+hist(regressive_saccades$saccLandSite_dist_to_spaceship, breaks=200)
+
+fit.gauss <- fitdist(regressive_saccades$saccade_amplitude, distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
+
+```
+
+```{r random_effects, include=TRUE}
+
+distSpaceship_regress_null <- lmer(saccLandSite_dist_to_spaceship ~ 1 + (1|ID), data=regressive_saccades, REML = FALSE)
+summary(distSpaceship_regress_null)
+
+```
+
+```{r ICC_distSpaceship_regress, include=TRUE}
+
+ICC_distSpaceship_regress <- 54.95 / (54.95 + 236.04)
+ICC_distSpaceship_regress
+
+```
+
+```{r distSpaceship_regress, include=TRUE}
+
+pred_distSpaceship_regress <- lmer(saccLandSite_dist_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=regressive_saccades, REML = FALSE)
+
+pred_distSpaceship_regress.slope <- lmer(saccLandSite_dist_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=regressive_saccades, REML = FALSE)
+
+pred_distSpaceship_regress.slope2 <- lmer(saccLandSite_dist_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=regressive_saccades, REML = FALSE)
+
+pred_distSpaceship_regress.slope3 <- lmer(saccLandSite_dist_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+input_noise|ID), data=regressive_saccades, REML = FALSE)
+
+anova(pred_distSpaceship_regress, pred_distSpaceship_regress.slope, pred_distSpaceship_regress.slope2, pred_distSpaceship_regress.slope3)
+
+summary(pred_distSpaceship_regress.slope3)
+
+```
+
+# Input data - input duration
+
+```{r input_data, include=FALSE}
+
+input_data <- read_csv("input_data/input_data.csv")
+
+# only considering those inputs that lasted for more than a single frame
+input_data <- input_data[input_data$input_duration > 0, ]
+
+```
+
+```{r input_duration_input, include=TRUE}
+
+hist(input_data$input_duration, breaks=200)
+
+fit.gamma <- fitdist(c(na.exclude(input_data$input_duration)), distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+```
+
+```{r random_effects, include=TRUE}
+
+inputDur_null <- glmer(input_duration ~ 1 + (1|ID), data=input_data, family = Gamma)
+summary(inputDur_null)
+
+```
+
+```{r ICC_inputDur, include=TRUE}
+
+ICC_inputDur <- 1.895 / (1.895 + 2.319)
+ICC_inputDur
+
+```
+
+```{r inputDur, include=TRUE}
+
+inputDur <- glmer(input_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=input_data, family = Gamma)
+
+#inputDur.slope <- 
+
+summary(inputDur)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#####################################OUT#######################################
 
 # linear modeling
 ```{r random_effects, include=TRUE}
@@ -275,7 +703,6 @@ summary(saccamp_progress)
 
 ```
 
-
 ```{r saccade_amplitude_regress, include=TRUE}
 
 # vs. fixations resting in front of spaceship
@@ -375,7 +802,7 @@ summary(input_duration.fit)
 
 ```
 
-Discussing the results: We find no effect of input_noise:weak for input_duration. However, if input_noise:strong is present, the input_duration increases! We would have thought different: the input_duration decreases to enable some kind of visual verification. Maybe humans do not rely so much on an ongoing regulatory process (visually matching with updated intended position) but more on an initially layed out plan.
+Discussing the results: We find no effect of input_noise:weak for input_duration. However, if input_noise:strong is present, the input_duration increases! We would have thought different: the input_duration decreases to enable some kind of visual verification. Maybe humans do not rely so much on an ongoing regulatory process (visually matching with updated intended position) but more on an initially laid out plan.
 
 
 
