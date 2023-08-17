@@ -1,0 +1,465 @@
+---
+title: "situational_analysis_linear_models"
+author: "Nils Wendel Heinrich"
+date: '2023-08-16'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages, include=FALSE}
+library(tidyverse)
+library(lme4)
+library(lmerTest)
+library(sjPlot)
+library(ggplot2)
+library(fitdistrplus)
+```
+
+```{r data, include=FALSE}
+
+setwd('/Users/heinrich/Projects/eye_movement_analysis_moonlander/')
+
+data_fixations <- read_csv("eye_data/situational_analysis_data/situational_fixations_data.csv")
+data_saccades <- read_csv("eye_data/situational_analysis_data/situational_saccades_data.csv")
+
+```
+
+# Predicting Fixations
+
+Variables of interest are:
+- *fixation_duration*
+- *distSpaceship_fix_rest*
+- *distClosestObstacle_fix_explore*
+whereby we have to differentiate between **resting** and **exploring** fixations.
+
+We will start by subsetting the data into two different data sets. For this we will filter out fixations of 0 duration. These may occur due to the eye tracker flagging only a single frame as fixation.
+```{r rest_vs_explore, include=TRUE}
+
+# only considering fixations with duration > 0:
+data_fixations <- data_fixations[data_fixations$fixation_duration > 0, ]
+
+exploring_fixations <- data_fixations[data_fixations$exploring_fixation == TRUE, ]
+resting_fixations <- data_fixations[data_fixations$exploring_fixation == FALSE, ]
+
+```
+
+## All fixations - Fixation duration
+
+First we check how well the distributed fixation durations in the data set match a gamma distribution.
+```{r check_fixDur_fit, include=TRUE}
+
+hist(data_fixations$fixation_duration, breaks=200)
+
+fit.gamma <- fitdist(data_fixations$fixation_duration, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+```
+
+### Random intercept effects (for fixation duration)
+
+Before we build the model investigating our hypotheses, we will explore code (participant ID) as possible random intercept effect. I will do that for each of the predicted variables before building the models. For this we will fit null models without fixed effects and only enter code as random intercept effect, looking at how much variance in the predicted variable is explained by code.
+```{r random_effects, include=TRUE}
+
+fixDur_null <- glmer(fixation_duration ~ 1 + (1|code), data=data_fixations, family = Gamma)
+summary(fixDur_null)
+
+```
+
+```{r ICC_fixDur, include=TRUE}
+
+ICC_fixDur <- 2.494 / (2.494 + 43.736)
+ICC_fixDur
+
+```
+
+Only 5% is explained by code. We will nevertheless include it as random intercept. We will explore random intercept effects, when building the models.
+
+For *fixation duration*, we will run the model assuming an interaction effect between the type of fixation and success.
+```{r fixation_duration, include=TRUE}
+
+pred_fixDur <- glmer(fixation_duration ~ success*exploring_fixation + (1|code), data=data_fixations, family = Gamma)
+
+pred_fixDur.slope <- glmer(fixation_duration ~ success*exploring_fixation + (1+success|code), data=data_fixations, family = Gamma)
+
+pred_fixDur.slope2 <- glmer(fixation_duration ~ success*exploring_fixation + (1+success*exploring_fixation|code), data=data_fixations, family = Gamma). # model fails to converge. Random effects structure too complicated
+
+anova(pred_fixDur, pred_fixDur.slope)
+
+summary(pred_fixDur)
+
+```
+
+## Resting fixations - Fixation duration
+
+```{r check_distSpaceship_fit, include=TRUE}
+
+hist(resting_fixations$fixation_duration, breaks=200)
+
+fit.gamma <- fitdist(resting_fixations$fixation_duration, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+```
+
+```{r random_effects, include=TRUE}
+
+fixDur_rest_null <- lmer(fixation_duration ~ 1 + (1|code), data=resting_fixations, REML=FALSE)
+summary(fixDur_rest_null)
+
+```
+
+```{r ICC_fixDur_rest, include=TRUE}
+
+ICC_fixDur_rest <- 0.05503 / (0.05503 + 0.08245)
+ICC_fixDur_rest
+
+```
+
+```{r fixation_duration, include=TRUE}
+
+pred_fixDur_rest <- glmer(fixation_duration ~ success + (1|code), data=resting_fixations, family = Gamma)
+
+pred_fixDur_rest.slope <- glmer(fixation_duration ~ success + (1+success|code), data=resting_fixations, family = Gamma)
+
+anova(pred_fixDur_rest, pred_fixDur_rest.slope)
+
+summary(pred_fixDur_rest)
+
+```
+
+## Resting fixations - Distance to spaceship
+
+We will assume a normal distribution for this predicted variable.
+```{r check_distSpaceship_fit, include=TRUE}
+
+hist(resting_fixations$distSpaceship_fix_rest, breaks=200)
+
+fit.gauss <- fitdist(resting_fixations$distSpaceship_fix_rest, distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
+
+```
+
+```{r random_effects, include=TRUE}
+
+distSpaceship_null <- lmer(distSpaceship_fix_rest ~ 1 + (1|code), data=resting_fixations, REML=FALSE)
+summary(distSpaceship_null)
+
+```
+
+```{r ICC_distSpaceship, include=TRUE}
+
+ICC_distSpaceship <- 198.3 / (198.3 + 1755.4)
+ICC_distSpaceship
+
+```
+
+```{r fixation_duration, include=TRUE}
+
+pred_distSpaceship <- lmer(distSpaceship_fix_rest ~ success + (1|code), data=resting_fixations, REML=FALSE)
+
+pred_distSpaceship.slope <- lmer(distSpaceship_fix_rest ~ success + (1+success|code), data=resting_fixations, REML=FALSE)
+
+anova(pred_distSpaceship, pred_distSpaceship.slope)
+
+summary(pred_distSpaceship)
+
+```
+
+## Exploring fixations - Fixation duration
+
+```{r check_distSpaceship_fit, include=TRUE}
+
+hist(exploring_fixations$fixation_duration, breaks=200)
+
+fit.gamma <- fitdist(exploring_fixations$fixation_duration, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+```
+
+```{r random_effects, include=TRUE}
+
+fixDur_explore_null <- lmer(fixation_duration ~ 1 + (1|code), data=exploring_fixations, REML=FALSE)
+summary(fixDur_explore_null)
+
+```
+
+```{r ICC_fixDur_explore, include=TRUE}
+
+ICC_fixDur_explore <- 0.03625 / (0.03625 + 0.08348)
+ICC_fixDur_explore
+
+```
+
+```{r fixation_duration, include=TRUE}
+
+pred_fixDur_explore <- glmer(fixation_duration ~ success + (1|code), data=exploring_fixations, family = Gamma)
+
+pred_fixDur_explore.slope <- glmer(fixation_duration ~ success + (1+success|code), data=exploring_fixations, family = Gamma)
+
+anova(pred_fixDur_explore, pred_fixDur_explore.slope)
+
+summary(pred_fixDur_explore)
+
+```
+
+## Exploring fixations - Distance to closest obstacle
+
+Here we assume a normally distributed predicted variable.
+```{r check_distObstacle_fit, include=TRUE}
+
+hist(exploring_fixations$distClosestObstacle_fix_explore, breaks=200)
+# this looks like a truncated normal distribution
+
+fit.gauss <- fitdist(exploring_fixations$distClosestObstacle_fix_explore, distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
+
+```
+
+```{r random_effects, include=TRUE}
+
+distObstacle_null <- lmer(distClosestObstacle_fix_explore ~ 1 + (1|code), data=exploring_fixations, REML=FALSE)
+summary(distObstacle_null)
+
+```
+
+```{r ICC_distObstacle, include=TRUE}
+
+ICC_distObstacle <- 71834 / (71834 + 89814)
+ICC_distObstacle
+
+```
+
+More than 44% of the variance is explained by code.
+
+```{r fixation_duration, include=TRUE}
+
+pred_distObstacle <- lmer(distClosestObstacle_fix_explore ~ success + (1|code), data=exploring_fixations, REML = FALSE)
+
+pred_distObstacle.slope <- lmer(distClosestObstacle_fix_explore ~ success + (1+success|code), data=exploring_fixations, REML = FALSE)
+
+anova(pred_distObstacle, pred_distObstacle.slope)
+
+summary(pred_distObstacle.slope)
+
+```
+
+# Predicting saccades
+
+Variables of interest are:
+- *saccade_amplitude*
+- *distClosestObstacle_sacc_progress*
+- *distClosestObstacle_sacc_regress*
+whereby we have to differentiate between **progressive** and **regressive** saccades
+
+We will start to subset the data into two different data sets. For this we will filter out saccades of 0 amplitude These may occur due to the eye tracker flagging only a single frame as saccade.
+```{r progress_vs_regress, include=TRUE}
+
+# only considering fixations with duration > 0:
+data_saccades <- data_saccades[data_saccades$saccade_amplitude > 0, ]
+
+progressive_saccades <- data_saccades[data_saccades$progressive_saccade == TRUE, ]
+regressive_saccades <- data_saccades[data_saccades$progressive_saccade == FALSE, ]
+
+```
+
+## All saccades - Saccade amplitude
+
+```{r check_saccAmp_fit, include=TRUE}
+
+hist(data_saccades$saccade_amplitude, breaks=200)
+
+fit.gamma <- fitdist(data_saccades$saccade_amplitude, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+```
+
+```{r random_effects, include=TRUE}
+
+saccAmp_null <- glmer(saccade_amplitude ~ 1 + (1|code), data=data_saccades, family = Gamma)
+summary(saccAmp_null)
+
+```
+
+```{r ICC_saccAmp, include=TRUE}
+
+ICC_saccAmp <- 0.3122 / (0.3122 + 2.4435)
+ICC_saccAmp
+
+```
+
+For *saccade amplitude*, we will run the model assuming an interaction effect between the type of saccade and success.
+```{r saccade_amplitude, include=TRUE}
+
+pred_saccAmp <- glmer(saccade_amplitude ~ success*progressive_saccade + (1|code), data=data_saccades, family = Gamma)
+
+pred_saccAmp.slope <- glmer(saccade_amplitude ~ success*progressive_saccade + (1+success|code), data=data_saccades, family = Gamma)
+
+anova(pred_saccAmp, pred_saccAmp.slope)
+
+summary(pred_saccAmp)
+
+```
+
+## Progressive saccades - Saccade amplitude
+
+```{r check_saccAmp_progress_fit, include=TRUE}
+
+hist(progressive_saccades$saccade_amplitude, breaks=200)
+
+fit.gamma <- fitdist(progressive_saccades$saccade_amplitude, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+```
+
+```{r random_effects, include=TRUE}
+
+saccAmp_progress_null <- glmer(saccade_amplitude ~ 1 + (1|code), data=progressive_saccades, family = Gamma)
+summary(saccAmp_progress_null)
+
+```
+
+```{r ICC_saccAmp_progress, include=TRUE}
+
+ICC_saccAmp_progress <- 0.1751 / (0.1751 + 1.8584)
+ICC_saccAmp_progress
+
+```
+
+```{r saccade_amplitude_progress, include=TRUE}
+
+pred_saccAmp_progress <- glmer(saccade_amplitude ~ success + (1|code), data=progressive_saccades, family = Gamma)
+
+pred_saccAmp_progress.slope <- glmer(saccade_amplitude ~ success + (1+success|code), data=progressive_saccades, family = Gamma)
+
+anova(pred_saccAmp_progress, pred_saccAmp_progress.slope)
+
+summary(pred_saccAmp_progress)
+
+```
+
+## Progressive saccades - Distance to closest obstacle
+
+```{r check_distObs_progress_fit, include=TRUE}
+
+hist(progressive_saccades$distClosestObstacle_sacc_progress, breaks=200)
+
+# we cannot ensure that distances won't be =0. We therefore assume a normal distribution
+fit.gauss <- fitdist(c(na.exclude(progressive_saccades$distClosestObstacle_sacc_progress)), distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
+
+```
+
+```{r random_effects, include=TRUE}
+
+distClosestObstacle_sacc_progress_null <- lmer(distClosestObstacle_sacc_progress ~ 1 + (1|code), data=progressive_saccades, REML=FALSE)
+summary(distClosestObstacle_sacc_progress_null)
+
+```
+
+```{r ICC_distObs_progress, include=TRUE}
+
+ICC_distObs_progress <- 64.56 / (64.56 + 183.31)
+ICC_distObs_progress
+
+```
+
+```{r distObstacle_progress, include=TRUE}
+
+pred_distObstacle_progress <- lmer(distClosestObstacle_sacc_progress ~ success + (1|code), data=progressive_saccades, REML=FALSE)
+
+pred_distObstacle_progress.slope <- lmer(distClosestObstacle_sacc_progress ~ success + (1+success|code), data=progressive_saccades, REML=FALSE)
+
+anova(pred_distObstacle_progress, pred_distObstacle_progress.slope)
+
+summary(pred_distObstacle_progress.slope)
+# we loose the fixed effect for success when including the random slope effect for code on success, but the random slope model is the one with the better AIC & BIC
+
+```
+
+## Regressive saccades - Saccade amplitude
+
+```{r check_saccAmp_regress_fit, include=TRUE}
+
+hist(regressive_saccades$saccade_amplitude, breaks=200)
+
+fit.gamma <- fitdist(regressive_saccades$saccade_amplitude, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+```
+
+```{r random_effects, include=TRUE}
+
+saccAmp_regress_null <- glmer(saccade_amplitude ~ 1 + (1|code), data=regressive_saccades, family = Gamma)
+summary(saccAmp_regress_null)
+
+```
+
+```{r ICC_saccAmp_regress, include=TRUE}
+
+ICC_saccAmp_regress <- 0.4938 / (0.4938 + 2.2681)
+ICC_saccAmp_regress
+
+```
+
+```{r saccade_amplitude_regress, include=TRUE}
+
+pred_saccAmp_regress <- glmer(saccade_amplitude ~ success + (1|code), data=regressive_saccades, family = Gamma)
+
+pred_saccAmp_regress.slope <- glmer(saccade_amplitude ~ success + (1+success|code), data=regressive_saccades, family = Gamma)
+
+anova(pred_saccAmp_regress, pred_saccAmp_regress.slope)
+
+summary(pred_saccAmp_regress)
+
+```
+
+## Regressive saccades - Distance to closest obstacle
+
+```{r check_distObs_fit, include=TRUE}
+
+hist(regressive_saccades$distClosestObstacle_sacc_regress, breaks=200)
+
+# we cannot ensure that distances won't be =0. We therefore assume a normal distribution
+fit.gauss <- fitdist(c(na.exclude(regressive_saccades$distClosestObstacle_sacc_regress)), distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
+
+```
+
+```{r random_effects, include=TRUE}
+
+distClosestObstacle_sacc_regress_null <- lmer(distClosestObstacle_sacc_regress ~ 1 + (1|code), data=regressive_saccades, REML=FALSE)
+summary(distClosestObstacle_sacc_regress_null)
+
+```
+
+```{r ICC_distObs_regress, include=TRUE}
+
+ICC_distObs_regress <- 133.6 / (133.6 + 247.7)
+ICC_distObs_regress
+
+```
+
+```{r distObstacle_regress, include=TRUE}
+
+pred_distObstacle_regress <- lmer(distClosestObstacle_sacc_regress ~ success + (1|code), data=regressive_saccades, REML=FALSE)
+
+pred_distObstacle_regress.slope <- lmer(distClosestObstacle_sacc_regress ~ success + (1+success|code), data=regressive_saccades, REML=FALSE)
+
+anova(pred_distObstacle_regress, pred_distObstacle_regress.slope)
+
+# again, we loose the fixed effect for success when including the random slope effect for code on success, but the random slope model is the one with the better AIC & BIC
+summary(pred_distObstacle_regress.slope)
+
+```
