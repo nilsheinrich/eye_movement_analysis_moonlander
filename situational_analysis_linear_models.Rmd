@@ -27,7 +27,7 @@ data_saccades <- read_csv("eye_data/situational_analysis_data/situational_saccad
 
 ```
 
-# Predicting Fixations
+# Predicting fixations
 
 Variables of interest are:
 - *fixation_duration*
@@ -85,7 +85,7 @@ pred_fixDur <- glmer(fixation_duration ~ success*exploring_fixation + (1|code), 
 
 pred_fixDur.slope <- glmer(fixation_duration ~ success*exploring_fixation + (1+success|code), data=data_fixations, family = Gamma)
 
-pred_fixDur.slope2 <- glmer(fixation_duration ~ success*exploring_fixation + (1+success*exploring_fixation|code), data=data_fixations, family = Gamma). # model fails to converge. Random effects structure too complicated
+pred_fixDur.slope2 <- glmer(fixation_duration ~ success*exploring_fixation + (1+success*exploring_fixation|code), data=data_fixations, family = Gamma) # model fails to converge. Random effects structure too complicated
 
 anova(pred_fixDur, pred_fixDur.slope)
 
@@ -95,7 +95,7 @@ summary(pred_fixDur)
 
 ## Resting fixations - Fixation duration
 
-```{r check_distSpaceship_fit, include=TRUE}
+```{r check_fixDur_rest_fit, include=TRUE}
 
 hist(resting_fixations$fixation_duration, breaks=200)
 
@@ -107,14 +107,14 @@ plot(fit.gamma)
 
 ```{r random_effects, include=TRUE}
 
-fixDur_rest_null <- lmer(fixation_duration ~ 1 + (1|code), data=resting_fixations, REML=FALSE)
+fixDur_rest_null <- glmer(fixation_duration ~ 1 + (1|code), data=resting_fixations, family = Gamma)
 summary(fixDur_rest_null)
 
 ```
 
 ```{r ICC_fixDur_rest, include=TRUE}
 
-ICC_fixDur_rest <- 0.05503 / (0.05503 + 0.08245)
+ICC_fixDur_rest <- 36.396 / (36.396 + 2.252)
 ICC_fixDur_rest
 
 ```
@@ -123,7 +123,7 @@ ICC_fixDur_rest
 
 pred_fixDur_rest <- glmer(fixation_duration ~ success + (1|code), data=resting_fixations, family = Gamma)
 
-pred_fixDur_rest.slope <- glmer(fixation_duration ~ success + (1+success|code), data=resting_fixations, family = Gamma)
+pred_fixDur_rest.slope <- glmer(fixation_duration ~ success + (1+success|code), data=resting_fixations, family = Gamma)  # isSingular
 
 anova(pred_fixDur_rest, pred_fixDur_rest.slope)
 
@@ -169,6 +169,8 @@ anova(pred_distSpaceship, pred_distSpaceship.slope)
 summary(pred_distSpaceship)
 
 ```
+
+Discussing the results: We find a significant fixed effect for success on the distance to the spaceship in resting fixations. This means that in successful runs, participants allocated their resting fixations further away from the spaceship compared to crash runs.  
 
 ## Exploring fixations - Fixation duration
 
@@ -216,39 +218,44 @@ Here we assume a normally distributed predicted variable.
 hist(exploring_fixations$distClosestObstacle_fix_explore, breaks=200)
 # this looks like a truncated normal distribution
 
-fit.gauss <- fitdist(exploring_fixations$distClosestObstacle_fix_explore, distr = "norm", method = "mme")
-summary(fit.gauss)
-plot(fit.gauss)
+fit.gamma <- fitdist(exploring_fixations$distClosestObstacle_fix_explore, distr = "gamma", method = "mme")
+summary(fit.gamma)
+plot(fit.gamma)
+
+#gauss: AIC:  23729.99   BIC:  23740.75
+#gamma: AIC:  22488.64   BIC:  22499.4 
+
 
 ```
 
 ```{r random_effects, include=TRUE}
 
-distObstacle_null <- lmer(distClosestObstacle_fix_explore ~ 1 + (1|code), data=exploring_fixations, REML=FALSE)
+distObstacle_null <- glmer(distClosestObstacle_fix_explore ~ 1 + (1|code), data=exploring_fixations, family = Gamma)
 summary(distObstacle_null)
+
+# Warning: Model failed to converge with max|grad| = 0.0778515 (tol = 0.002, component 1)Warning: Model is nearly unidentifiable: very large eigenvalue
+# - Rescale variables?
 
 ```
 
 ```{r ICC_distObstacle, include=TRUE}
 
-ICC_distObstacle <- 71834 / (71834 + 89814)
+ICC_distObstacle <- 1.865e-07 / (1.865e-07 + 1.629e-01)
 ICC_distObstacle
 
 ```
 
-More than 44% of the variance is explained by code.
+Nearly no variance in the predicted variable is explained by participant code. We will therefore omit including code as random effect.
 
-```{r fixation_duration, include=TRUE}
+```{r distClosestObstacle_fix_explore, include=TRUE}
 
-pred_distObstacle <- lmer(distClosestObstacle_fix_explore ~ success + (1|code), data=exploring_fixations, REML = FALSE)
+pred_distObstacle <- glm(distClosestObstacle_fix_explore ~ success, data=exploring_fixations, family = Gamma)
 
-pred_distObstacle.slope <- lmer(distClosestObstacle_fix_explore ~ success + (1+success|code), data=exploring_fixations, REML = FALSE)
-
-anova(pred_distObstacle, pred_distObstacle.slope)
-
-summary(pred_distObstacle.slope)
+summary(pred_distObstacle)
 
 ```
+
+Discussing the results: We find a significant fixed effect for success on distance to the closest obstacle in exploring fixations. This means that in successful runs, the participant allocated their exploring fixations further away from obstacles compared to crash runs.
 
 # Predicting saccades
 
@@ -352,8 +359,23 @@ summary(pred_saccAmp_progress)
 
 hist(progressive_saccades$distClosestObstacle_sacc_progress, breaks=200)
 
-# we cannot ensure that distances won't be =0. We therefore assume a normal distribution
+# maybe log transform distClosestObstacle columns?
+
+# we cannot ensure that distances won't be =0 (not allowed in gamma). We therefore assume a normal distribution
 fit.gauss <- fitdist(c(na.exclude(progressive_saccades$distClosestObstacle_sacc_progress)), distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
+
+```
+
+```{r log_transform_distObs_progress, include=TRUE}
+
+progressive_saccades$distClosestObstacle_sacc_progress.log <- log10(progressive_saccades$distClosestObstacle_sacc_progress)
+
+hist(progressive_saccades$distClosestObstacle_sacc_progress.log, breaks=200)
+
+# we cannot ensure that distances won't be =0 (not allowed in gamma). We therefore assume a normal distribution
+fit.gauss <- fitdist(c(na.exclude(progressive_saccades$distClosestObstacle_sacc_progress.log)), distr = "norm", method = "mme")
 summary(fit.gauss)
 plot(fit.gauss)
 
@@ -361,7 +383,7 @@ plot(fit.gauss)
 
 ```{r random_effects, include=TRUE}
 
-distClosestObstacle_sacc_progress_null <- lmer(distClosestObstacle_sacc_progress ~ 1 + (1|code), data=progressive_saccades, REML=FALSE)
+distClosestObstacle_sacc_progress_null <- lmer(distClosestObstacle_sacc_progress.log ~ 1 + (1|code), data=progressive_saccades, REML=FALSE)
 summary(distClosestObstacle_sacc_progress_null)
 
 ```
@@ -369,15 +391,16 @@ summary(distClosestObstacle_sacc_progress_null)
 ```{r ICC_distObs_progress, include=TRUE}
 
 ICC_distObs_progress <- 64.56 / (64.56 + 183.31)
+ICC_distObs_progress <- 0.06539 / (0.06539 + 0.18318)
 ICC_distObs_progress
 
 ```
 
 ```{r distObstacle_progress, include=TRUE}
 
-pred_distObstacle_progress <- lmer(distClosestObstacle_sacc_progress ~ success + (1|code), data=progressive_saccades, REML=FALSE)
+pred_distObstacle_progress <- lmer(distClosestObstacle_sacc_progress.log ~ success + (1|code), data=progressive_saccades, REML=FALSE)
 
-pred_distObstacle_progress.slope <- lmer(distClosestObstacle_sacc_progress ~ success + (1+success|code), data=progressive_saccades, REML=FALSE)
+pred_distObstacle_progress.slope <- lmer(distClosestObstacle_sacc_progress.log ~ success + (1+success|code), data=progressive_saccades, REML=FALSE)
 
 anova(pred_distObstacle_progress, pred_distObstacle_progress.slope)
 
@@ -418,7 +441,7 @@ pred_saccAmp_regress <- glmer(saccade_amplitude ~ success + (1|code), data=regre
 
 pred_saccAmp_regress.slope <- glmer(saccade_amplitude ~ success + (1+success|code), data=regressive_saccades, family = Gamma)
 
-anova(pred_saccAmp_regress, pred_saccAmp_regress.slope)
+anova(pred_saccAmp_regress, pred_saccAmp_regress.slope) # not significantly different 
 
 summary(pred_saccAmp_regress)
 
@@ -437,25 +460,41 @@ plot(fit.gauss)
 
 ```
 
+```{r log_transform_distObs, include=TRUE}
+
+regressive_saccades$distClosestObstacle_sacc_regress.log <- log10(regressive_saccades$distClosestObstacle_sacc_regress)
+
+hist(regressive_saccades$distClosestObstacle_sacc_regress.log, breaks=200)
+
+# we cannot ensure that distances won't be =0. We therefore assume a normal distribution
+fit.gauss <- fitdist(c(na.exclude(regressive_saccades$distClosestObstacle_sacc_regress.log)), distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
+
+# no transfrom: AIC:  4196.973   BIC:  4205.275 
+# log transform: AIC:  871.9101   BIC:  880.2113
+
+```
+
 ```{r random_effects, include=TRUE}
 
-distClosestObstacle_sacc_regress_null <- lmer(distClosestObstacle_sacc_regress ~ 1 + (1|code), data=regressive_saccades, REML=FALSE)
+distClosestObstacle_sacc_regress_null <- lmer(distClosestObstacle_sacc_regress.log ~ 1 + (1|code), data=regressive_saccades, REML=FALSE)
 summary(distClosestObstacle_sacc_regress_null)
 
 ```
 
 ```{r ICC_distObs_regress, include=TRUE}
 
-ICC_distObs_regress <- 133.6 / (133.6 + 247.7)
+ICC_distObs_regress <- 0.1480 / (0.1480 + 0.1999)
 ICC_distObs_regress
 
 ```
 
 ```{r distObstacle_regress, include=TRUE}
 
-pred_distObstacle_regress <- lmer(distClosestObstacle_sacc_regress ~ success + (1|code), data=regressive_saccades, REML=FALSE)
+pred_distObstacle_regress <- lmer(distClosestObstacle_sacc_regress.log ~ success + (1|code), data=regressive_saccades, REML=FALSE)
 
-pred_distObstacle_regress.slope <- lmer(distClosestObstacle_sacc_regress ~ success + (1+success|code), data=regressive_saccades, REML=FALSE)
+pred_distObstacle_regress.slope <- lmer(distClosestObstacle_sacc_regress.log ~ success + (1+success|code), data=regressive_saccades, REML=FALSE)
 
 anova(pred_distObstacle_regress, pred_distObstacle_regress.slope)
 

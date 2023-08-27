@@ -14,8 +14,10 @@ library(tidyverse)
 library(lme4)
 library(lmerTest)
 library(sjPlot)
+library(latex2exp)
 library(ggplot2)
 library(fitdistrplus)
+library(simr)
 ```
 
 
@@ -31,9 +33,9 @@ We have data from 26 participants. Exclusion took place and will have to be spec
 
 ```{r edit_data, include=FALSE}
 
+# level difficulty
 # Most likely we won't use level difficulty as fixed effect. But we will nevertheless relevel it.
-
-# fixations
+## fixations
 data_fixations <- data_fixations %>%
   mutate(level_difficulty = case_when(
     (level == 1 | level == 2) ~ "easy",
@@ -42,8 +44,7 @@ data_fixations <- data_fixations %>%
     ))
 data_fixations$level_difficulty <- as.factor(data_fixations$level_difficulty)
 data_fixations <- within(data_fixations, level_difficulty <- relevel(level_difficulty, ref = "easy"))
-
-# saccades
+## saccades
 data_saccades <- data_saccades %>%
   mutate(level_difficulty = case_when(
     (level == 1 | level == 2) ~ "easy",
@@ -52,6 +53,44 @@ data_saccades <- data_saccades %>%
     ))
 data_saccades$level_difficulty <- as.factor(data_saccades$level_difficulty)
 data_saccades <- within(data_saccades, level_difficulty <- relevel(level_difficulty, ref = "easy"))
+
+# input noise
+## fixations
+data_fixations$input_noise <- as.factor(data_fixations$input_noise)
+data_fixations <- within(data_fixations, input_noise <- relevel(input_noise, ref = "N"))
+## saccades
+data_saccades$input_noise <- as.factor(data_saccades$input_noise)
+data_saccades <- within(data_saccades, input_noise <- relevel(input_noise, ref = "N"))
+
+```
+
+```{r plotting_theme, echo=FALSE}
+
+set_theme(
+  base = theme_bw(),
+  geom.outline.color = "antiquewhite4",
+  legend.inside = TRUE,
+  geom.label.size = 3
+)
+
+```
+
+# Effects coding
+
+We are especially interested in exlporing effects of *input noise* in our predicted variables. Input noise means the internal loss of control. We will put it against *drift*, the external loss of control as well as account for the number of obstacles on the screen which might mainly drive changes in the predicted variable.
+
+We want to apply our own effects coding for the variables of level_difficulty and input_noise.
+```{r effects_coding, include=TRUE}
+
+# both variables have 3 levels. Therefore we can go for a single matrix. We want to test level 2 against level 1, then level 3 against level 1, and last level 3 against level 2.
+#effects_coding <- contr.treatment(3)
+
+#effects_coding <- cbind( c(0,1,0), c(0,0,1), c(0,-1,1))
+#contrasts(data_fixations$input_noise) = effects_coding
+
+# this changes the base to level 2
+#data_fixations$input_noise <- as.factor(data_fixations$input_noise)
+#contrasts(data_fixations$input_noise) = contr.treatment(3, base = 2)
 
 ```
 
@@ -78,7 +117,7 @@ resting_fixations <- data_fixations[data_fixations$exploring_fixation == 0, ]
 
 ```
 
-## Resting fixations - Fixation duration
+## Resting fixations - Fixation duration (s)
 
 ```{r check_fixDur_rest_fit, include=TRUE}
 
@@ -114,11 +153,33 @@ pred_fixDur_rest.slope2 <- glmer(fixation_duration ~ N_visible_obstacles * N_vis
 
 anova(pred_fixDur_rest, pred_fixDur_rest.slope, pred_fixDur_rest.slope2)
 
-summary(pred_fixDur_rest)
+summary(pred_fixDur_rest.slope)
+
+#powerSim(pred_fixDur_rest.slope, "input_noise", nsim=100)
+#powerSim(pred_fixDur_rest.slope, nsim = 100, test = fixed("input_noise", method = "kr"))
 
 ```
 
-## Resting fixations - Fixation location (distance to spaceship)
+```{r plot_fixation_duration_rest, echo=FALSE}
+
+plot_fixDurRest <- plot_model(pred_fixDur_rest.slope, 
+           type = "pred", 
+           terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
+           title = "",
+           colors = "Set2",
+           legend.title = TeX("$N_{ drift_{ visible}}$")
+           )
+
+# additional layout stuff
+plot_fixDurRest <- plot_fixDurRest + 
+  xlab(TeX("$N_{ obstacles_{ visible}}$")) +
+  xlim(0, 15) +
+  ylab("Fixation Duration (s)")
+
+plot_fixDurRest
+```
+
+## Resting fixations - Fixation location (distance to spaceship in visual degrees)
 
 ```{r check_distSpaceship_rest_fit, include=TRUE}
 
@@ -158,9 +219,28 @@ summary(pred_distSpaceship_rest.slope)
 
 ```
 
+```{r plot_distance_to_spaceship_rest, echo=FALSE}
+
+plot_distSpaceshipRest <- plot_model(pred_distSpaceship_rest.slope, 
+           type = "pred", 
+           terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
+           title = "",
+           colors = "Set2",
+           legend.title = TeX("$N_{ drift_{ visible}}$")
+           )
+
+# additional layout stuff
+plot_distSpaceshipRest <- plot_distSpaceshipRest + 
+  xlab(TeX("$N_{ obstacles_{ visible}}$")) +
+  xlim(0, 15) +
+  ylab("Distance to Spaceship (visual degrees°)")
+
+plot_distSpaceshipRest
+```
+
 Discussing the results: ...
 
-## Exploring fixations - Fixation duration
+## Exploring fixations - Fixation duration (s)
 
 ```{r check_fixDur_explore_fit, include=TRUE}
 
@@ -204,7 +284,7 @@ summary(pred_fixDur_explore.slope3)
 
 Discussing the results: ...
 
-## Exploring fixations - Fixation location (distance to spaceship)
+## Exploring fixations - Fixation location (distance to spaceship in visual degrees)
 
 ```{r check_distSpaceship_explore_fit, include=TRUE}
 
@@ -237,15 +317,15 @@ pred_distSpaceship_explore <- glm(distance_to_spaceship ~ N_visible_obstacles * 
 summary(pred_distSpaceship_explore)
 
 # including random effects
-pred_distSpaceship_explore <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=exploring_fixations, REML = FALSE)
+#pred_distSpaceship_explore <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=exploring_fixations, REML = FALSE)
 #summary(pred_distSpaceship_explore)
 
-pred_distSpaceship_explore.slope <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=exploring_fixations, REML = FALSE)
+#pred_distSpaceship_explore.slope <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=exploring_fixations, REML = FALSE)
 #summary(pred_distSpaceship_explore.slope)
 
-anova(pred_distSpaceship_explore, pred_distSpaceship_explore.slope)
+#anova(pred_distSpaceship_explore, pred_distSpaceship_explore.slope)
 
-pred_distSpaceship_explore.slope2 <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=exploring_fixations, REML = FALSE)
+#pred_distSpaceship_explore.slope2 <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=exploring_fixations, REML = FALSE)
 #summary(pred_distSpaceship_explore.slope2)
 
 #anova(pred_distSpaceship_explore, pred_distSpaceship_explore.slope, pred_distSpaceship_explore.slope2)
@@ -270,7 +350,7 @@ regressive_saccades <- data_saccades[data_saccades$saccade_direction_y > 0, ]
 
 ```
 
-## Progressive saccades - Saccade amplitude
+## Progressive saccades - Saccade amplitude (in visual degrees)
 
 ```{r check_saccAmp_progress_fit, include=TRUE}
 
@@ -304,7 +384,9 @@ summary(pred_saccAmp_progress)
 
 ```
 
-## Progressive saccades - distance to closest obstacle
+Discussing the results: ...
+
+## Progressive saccades - distance to closest obstacle (in pixel)
 
 ```{r check_distObs_progress_fit, include=TRUE}
 
@@ -338,6 +420,8 @@ summary(pred_distObs_progress)
 
 ```
 
+Discussing the results: ...
+
 ## Regressive saccades - Saccade amplitude
 
 ```{r check_saccAmp_regress_fit, include=TRUE}
@@ -368,9 +452,11 @@ ICC_saccAmp_regress
 
 # ID does not explain variance in the predicted variable. We might therefore omit including it as random effect
 pred_saccAmp_regress <- glm(saccade_amplitude ~ N_visible_obstacles * N_visible_drift_tiles + input_noise, data=regressive_saccades, family = Gamma)
-summary(pred_saccAmp_progress)
+summary(pred_saccAmp_regress)
 
 ```
+
+Discussing the results: ...
 
 ## Regressive saccades - distance to spaceship
 
@@ -402,7 +488,7 @@ ICC_distSpaceship_regress
 
 pred_distSpaceship_regress <- lmer(saccLandSite_dist_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=regressive_saccades, REML = FALSE)
 
-pred_distSpaceship_regress.slope <- lmer(saccLandSite_dist_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=regressive_saccades, REML = FALSE)
+pred_distSpaceship_regress.slope <- lmer(saccLandSite_dist_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=regressive_saccades, REML = FALSE) # does not converge
 
 pred_distSpaceship_regress.slope2 <- lmer(saccLandSite_dist_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=regressive_saccades, REML = FALSE)
 
@@ -414,14 +500,21 @@ summary(pred_distSpaceship_regress.slope3)
 
 ```
 
+Discussing the results: ...
+
 # Input data - input duration
 
 ```{r input_data, include=FALSE}
 
 input_data <- read_csv("input_data/input_data.csv")
 
-# only considering those inputs that lasted for more than a single frame
-input_data <- input_data[input_data$input_duration > 0, ]
+# only considering those inputs that lasted for more than a single frame =0.033s and shorter than 2.45s (time for instance to completely be solved) -> no guarantee to pursue goals but steer blindly
+#input_data <- input_data[input_data$input_duration > 0.033, ]
+input_data <- input_data[input_data$input_duration > 0.033 & input_data$input_duration < 2.45, ]
+input_data <- input_data %>% filter(!is.na(input_duration))
+
+input_data$input_noise <- as.factor(input_data$input_noise)
+input_data <- within(input_data, input_noise <- relevel(input_noise, ref = "N"))
 
 ```
 
@@ -444,7 +537,7 @@ summary(inputDur_null)
 
 ```{r ICC_inputDur, include=TRUE}
 
-ICC_inputDur <- 1.895 / (1.895 + 2.319)
+ICC_inputDur <- 0.7201 / (0.7201 + 0.7758)
 ICC_inputDur
 
 ```
@@ -453,271 +546,23 @@ ICC_inputDur
 
 inputDur <- glmer(input_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=input_data, family = Gamma)
 
-#inputDur.slope <- 
+inputDur.slope <- glmer(input_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=input_data, family = Gamma)
 
-summary(inputDur)
+inputDur.slope2 <- glmer(input_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=input_data, family = Gamma)
 
-```
+inputDur.slope3 <- glmer(input_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+input_noise|ID), data=input_data, family = Gamma)  # does not converge 
 
+anova(inputDur, inputDur.slope, inputDur.slope2, inputDur.slope3)
 
+# models significantly different
+anova(inputDur, inputDur.slope2)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#####################################OUT#######################################
-
-# linear modeling
-```{r random_effects, include=TRUE}
-
-# random intercept for ID
-
-null_fixDur <- lmer(fixation_duration ~ 1 + (1|ID), data=data_fixations, REML=FALSE)
-summary(null_fixDur)
-
-null_fixLoc <- lmer(converging_eye_y ~ 1 + (1|ID), data=data_fixations, REML=FALSE)
-summary(null_fixLoc)
-
-null_saccAmp <- lmer(saccade_amplitude ~ 1 + (1|ID), data=data_saccades, REML=FALSE)
-summary(null_saccAmp)
+summary(inputDur.slope2)
 
 ```
-```{r ICCs, include=TRUE}
-
-ICC_fixDur <- 0.02036 / (0.02036 + 0.09764)
-ICC_fixDur
-
-ICC_convergingEyeY <- 2125 / (2125 + 39658)
-ICC_convergingEyeY
-
-ICC_saccAmp <- 2.981 / (2.981 + 86.438)
-ICC_saccAmp
-
-```
-
-# Fixations
-
-The VPixx eye tracker might have detected fixations where there are none, resulting in a fixation duration of 0 ms. We will filter those and divide the data into fixations exploring the scene, and fixations that "rest" directly in front of the space ship.
-```{r filtering, include=TRUE}
-
-# only considering fixations with duration > 0:
-data_fixations <- data_fixations[data_fixations$fixation_duration > 0, ]
-
-# distinguishing explorative and resting fixations
-#x_sp = 972
-#y_sp = 288
-
-# 4° is half of the span of the parafovea. We will use that as the threshold (keeping the spaceship clearly visible vs. not)
-#threshold = 4
-
-#data_fixations$distance_to_spaceship <- sqrt((data_fixations$converging_eye_x_adjusted - x_sp)**2 + (data_fixations$converging_eye_y_adjusted - y_sp)**2)
-
-# subsetting exploring fixations
-explorative_fixations <- data_fixations[data_fixations$exploring_fixation == 1, ]
-# vs. fixations resting in front of spaceship
-resting_fixations <- data_fixations[data_fixations$exploring_fixation == 0, ]
-
-```
-
-In the following we will investigate effects for fixation duration as well as fixation location only of the vertical axis.
-
-### Explorative fixations
-We will explore ID as random intercept effect specifically for explorative fixations first. 
-```{r random_effects_for_explorative, include=TRUE}
-
-# ID
-
-null_1 <- lmer(fixation_duration ~ 1 + (1|ID), data=explorative_fixations, REML=FALSE)
-summary(null_1)
-
-null_2 <- lmer(converging_eye_y ~ 1 + (1|ID), data=explorative_fixations, REML=FALSE)
-summary(null_2)
-
-
-```
-
-```{r ICCs_explore, include=TRUE}
-
-ICC_fixDur_explore <- 0.02011 / (0.02011 + 0.09011)
-ICC_fixDur_explore
-
-ICC_convergingEyeY_explore <- 2209 / (2209 + 44888)
-ICC_convergingEyeY_explore
-
-
-```
-
-We will definitely keep ID as random intercept effect for fixation duration. For fixation location y, there might be room to argue both ways. We will simply keep it in the model.
-
-## fixation duration
-
-We will first take a look at fixation duration. From experience I know that duration are not normally distributed and naturally can not have negative values. A lot of values will gather in the small x-regions and only few in the large one. We will thus explore how the data fits a gamma distribution. We will account for our distinction of explorative and resting fixations.
-
-```{r check_fixDur_fit, include=TRUE}
-# explorative
-fit.gamma <- fitdist(explorative_fixations$fixation_duration, distr = "gamma", method = "mme")
-summary(fit.gamma)
-plot(fit.gamma)
-hist(explorative_fixations$fixation_duration, breaks=200)
-
-# resting
-fit.gamma <- fitdist(resting_fixations$fixation_duration, distr = "gamma", method = "mme")
-summary(fit.gamma)
-plot(fit.gamma)
-hist(resting_fixations$fixation_duration, breaks=200)
-```
-
-The fit looks good. We will therefore use generalized linear modeling to fit a model on the gamma distributed fixation duration for exploring and resting fixations individually. We specify drift, input_noise, and level as fixed effects while assuming an interaction effect between drift and input_noise. 
-
-First exploring fixations...
-```{r fixation_duration_explore, include=TRUE}
-
-fixDur_explore <- glmer(fixation_duration ~ drift*level_difficulty + input_noise + (1|ID),  data = explorative_fixations, family = Gamma)
-summary(fixDur_explore)
-
-#fixDur_explore.free_slope <- glmer(fixation_duration ~ drift*level_difficulty + input_noise + (1 + input_noise|ID),  #data = explorative_fixations, family = Gamma)
-#summary(fixDur_explore.free_slope)
-
-#coef(fixDur_explore)
-#coef(fixDur_explore.free_slope). # when freeing slope for input noise, we can actually see single individuals skewing the coefficients for input noise
-
-fixDur_explore <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = explorative_fixations, family = Gamma)
-summary(fixDur_explore)
-
-```
-
-Discussing the results: ...
-
-Then for resting fixations...
-```{r fixation_duration_rest, include=TRUE}
-
-fixDur_rest <- glmer(fixation_duration ~ drift*level_difficulty + input_noise + (1|ID),  data = resting_fixations, family = Gamma)
-summary(fixDur_rest)
-
-# N_obs & N_drifts
-fixDur_rest <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = resting_fixations, family = Gamma)
-summary(fixDur_rest)
-
-```
-
-Discussing the results: We find effects for drift (True vs. False) as well as both levels of level_difficulty. We find no effects for either one of input_noise:weak or input_noise:strong. We also find an interaction effect for level_difficulty(hard)*drift.
-
-## fixation location
-
-Next we will take a look at the fixation location in terms of y location (vertical position of eyes on screen). Fixation locations might actually be normally distributed. 
-```{r check_fixloc, include=TRUE}
-fit.gauss <- fitdist(data_fixations$converging_eye_y, distr = "norm", method = "mme")
-summary(fit.gauss)
-plot(fit.gauss)
-hist(data_fixations$converging_eye_y, breaks=200)
-
-
-```
-
-That looks smooth. We will therefore be able to fit a LMM without having to specify a family for our outcome variable converging_eye_y. 
-We stick to our fixed effects model structure and fit a model for exploring and resting fixations individually. First we will fit for exploring fixations.
-```{r fixation_location_explore, include=TRUE}
-
-fixloc_explore <- lmer(converging_eye_y ~ drift*level_difficulty + input_noise + (1|ID),  data = explorative_fixations, REML = FALSE)
-summary(fixloc_explore)
-
-# N_obs & N_drifts
-fixloc_explore <- lmer(converging_eye_y ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = explorative_fixations, REML = FALSE)
-summary(fixloc_explore)
-
-```
-
-Discussing the results: Hm we find no effects for both levels (weak and strong) of input noise. Weird! But then we find an effect for level_difficulty:hard, but not for medium (marginally significant); as well as interaction effects for drift and both levels of level_difficulty.
-
-```{r fixation_location_rest, include=TRUE}
-
-fixloc_rest <- lmer(converging_eye_y ~ drift*level_difficulty + input_noise + (1|ID),  data = resting_fixations, REML = FALSE)
-summary(fixloc_rest)
-
-# N_obs & N_drifts
-fixloc_rest <- lmer(converging_eye_y ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = resting_fixations, REML = FALSE)
-summary(fixloc_rest)
-
-```
-
-Discussing the results: Here nearly everything is significant. We only find no significant effect for input_noise:weak as well as the interaction effect of drift*level_difficulty:medium. FixLocY might therefore be a metric for input_noise (SoC) in case of string pertubations.
-
-# Saccades
-
-```{r filtering_saccades, include=TRUE}
-
-# only considering fixations with duration > 0:
-data_saccades <- data_saccades[data_saccades$saccade_amplitude > 0 & data_saccades$saccade_amplitude < 27, ]
-# filter saccades that have no saccade amplitude
-data_saccades <- data_saccades[!is.na(data_saccades$saccade_amplitude),]
-
-# subsetting progressive saccades
-progressive_saccades <- data_saccades[data_saccades$saccade_direction_y < 0, ]
-# vs. regressive saccades going back to the spaceship
-regressive_saccades <- data_saccades[data_saccades$saccade_direction_y > 0, ]
-
-```
-
-## saccade amplitude
-
-```{r check_saccamp, include=TRUE}
-
-fit.gamma <- fitdist(data_saccades$saccade_amplitude, distr = "gamma", method = "mme")
-summary(fit.gamma)
-plot(fit.gamma)
-
-# sum(is.nan(data_saccades$saccade_amplitude))
-hist(data_saccades$saccade_amplitude, breaks=200)
-min(data_saccades$saccade_amplitude)
-```
-
-```{r saccade_amplitude_progress, include=TRUE}
-
-# subsetting exploring fixations
-saccamp_progress <- lmer(saccade_amplitude ~ drift*level_difficulty + input_noise + (1|ID),  data = progressive_saccades, REML = FALSE)
-summary(saccamp_progress)
-
-# N_obs & N_drifts
-saccamp_progress <- lmer(saccade_amplitude ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = progressive_saccades, REML = FALSE)
-summary(saccamp_progress)
-
-```
-
-```{r saccade_amplitude_regress, include=TRUE}
-
-# vs. fixations resting in front of spaceship
-saccamp_regress <- lmer(saccade_amplitude ~ drift*level_difficulty + input_noise + (1|ID),  data = regressive_saccades, REML = FALSE)
-summary(saccamp_regress)
-
-# N_obs & N_drifts
-saccamp_regress <- lmer(saccade_amplitude ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = regressive_saccades, REML = FALSE)
-summary(saccamp_regress)
-
-```
-
-Follow-up: Do saccades land nearer spaceship after saccade during strong input noise (compared to intercept)?
 
 # Responses to SoC questionnaire after each trial
+
 ```{r soc, include=TRUE}
 
 soc_data <- read_csv("soc_data/soc_data.csv")
@@ -731,78 +576,53 @@ soc_data <- soc_data %>%
 soc_data$level_difficulty <- as.factor(soc_data$level_difficulty)
 soc_data <- within(soc_data, level_difficulty <- relevel(level_difficulty, ref = "easy"))
 
-hist(soc_data$SoC, breaks=7)
+soc_data$input_noise <- as.factor(soc_data$input_noise)
+soc_data <- within(soc_data, input_noise <- relevel(input_noise, ref = "N"))
+
 table(soc_data$SoC)
 
 ```
 
-```{r soc_model, include=TRUE}
+```{r soc_fit, include=TRUE}
 
-# fixed effects structure to be discussed:
-# 1) done + drift*level_difficulty + input_noise
-# 2) drift*level_difficulty + input_noise + (1|done)
+hist(soc_data$SoC, breaks=7)
+
+fit.gauss <- fitdist(c(na.exclude(soc_data$SoC)), distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
+
+# AIC_gamma: 5600.357
+# AIC_norm: 5124.438
+```
+
+```{r random_effects, include=TRUE}
+
+soc_null <- lmer(SoC ~ 1 + (1|ID), data=soc_data, REML = FALSE)
+summary(soc_null)
+
+```
+
+```{r ICC_soc, include=TRUE}
+
+ICC_soc <- 0.3471 / (0.3471 + 2.5151)
+ICC_soc
+
+```
+
+```{r soc, include=TRUE}
 
 soc_model <- lmer(SoC ~ done + drift*level_difficulty + input_noise + (1|ID),  data = soc_data, REML = FALSE)
-summary(soc_model)
-#coef(soc_model)
+
+soc_model.slope <- lmer(SoC ~ done + drift*level_difficulty + input_noise + (1+done|ID),  data = soc_data, REML = FALSE)
+
+soc_model.slope2 <- lmer(SoC ~ done + drift*level_difficulty + input_noise + (1+drift*level_difficulty|ID),  data = soc_data, REML = FALSE)  # does not converge
+
+soc_model.slope3 <- lmer(SoC ~ done + drift*level_difficulty + input_noise + (1+input_noise|ID),  data = soc_data, REML = FALSE)  # isSingular...
+
+anova(soc_model, soc_model.slope, soc_model.slope2, soc_model.slope3)
+
+summary(soc_model.slope)
+
 ```
 
 Discussing the results: ...
-
-# Input data (input duration)
-```{r input_data, include=TRUE}
-
-input_data <- read_csv("input_data/input_data.csv")
-
-# filtering
-input_data <- input_data[input_data$input_duration > 0.033 & input_data$input_duration < 2.45, ]
-input_data <- input_data %>% filter(!is.na(input_duration))
-
-fit.gamma <- fitdist(input_data$input_duration, distr = "gamma", method = "mme")
-summary(fit.gamma)
-plot(fit.gamma)
-hist(input_data$input_duration, breaks=200)
-
-```
-
-We will stick with the gamma dist.
-
-```{r input_data_null, include=TRUE}
-
-input_duration.null_fit <- glmer(input_duration ~ 1 + (1|ID),  data = input_data, family = Gamma)
-summary(input_duration.null_fit)
-
-```
-
-## ICC for subject in inputduration
-```{r data, include=TRUE}
-
-ICC_input_dur <- 0.7201 / (0.7201 + 0.7758)
-ICC_input_dur
-
-```
-
-ID explains a huge chunk of the variance in the input_duration data. We will therefore include it as random intercept effect.
-
-```{r input_data_fit, include=TRUE}
-
-input_duration.fit <- glmer(input_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID),  data = input_data, family = Gamma)
-summary(input_duration.fit)
-
-```
-
-Discussing the results: We find consistent effects for both our fixed effects. For each obstacle on screen the input duration decreases only a little bit, but still significantly. For every drift tile on screen however, the input duration decreases by a huge chunk. That is also due to there can only be a maximum of 2 drift tiles on screen (0 vs. 1 vs. 2), whereas obstacles vary largely (0 - 12?). For both levels of input noise, we find no significant difference to the intercept.
-For Nobstacles, this may be due to simply there is less free space and thus the ways are shorter, resulting in shorter input. For Ndrift, this is more tricky. Do the players learn to incorporate drift into their action planning, resulting in shorter input solely due to using drift as 'passive' input.
-
-We will isolate the effect solely for input noise in our next model:
-```{r input_noise, include=TRUE}
-
-input_duration.fit <- glmer(input_duration ~ input_noise + (1|ID),  data = input_data, family = Gamma)
-summary(input_duration.fit)
-
-```
-
-Discussing the results: We find no effect of input_noise:weak for input_duration. However, if input_noise:strong is present, the input_duration increases! We would have thought different: the input_duration decreases to enable some kind of visual verification. Maybe humans do not rely so much on an ongoing regulatory process (visually matching with updated intended position) but more on an initially laid out plan.
-
-
-
