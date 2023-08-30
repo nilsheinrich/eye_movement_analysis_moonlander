@@ -29,7 +29,7 @@ data_fixations <- read_csv("eye_data/experimental_eye_data_fixations.csv")
 data_saccades <- read_csv("eye_data/experimental_eye_data_saccades.csv")
 
 ```
-We have data from 26 participants. Exclusion took place and will have to be specified here...
+We have data from 27 participants. Exclusion took place and will have to be specified here...
 
 ```{r edit_data, include=FALSE}
 
@@ -131,14 +131,14 @@ plot(fit.gamma)
 
 ```{r random_effects, include=TRUE}
 
-fixDur_rest_null <- lmer(fixation_duration ~ 1 + (1|ID), data=resting_fixations, REML=FALSE)
+fixDur_rest_null <- glmer(fixation_duration ~ 1 + (1|ID), data=resting_fixations, family = Gamma)
 summary(fixDur_rest_null)
 
 ```
 
 ```{r ICC_fixDur_rest, include=TRUE}
 
-ICC_fixDur_rest <- 0.02655 / (0.02655 + 0.10495)
+ICC_fixDur_rest <- 1.653 / (1.653 + 19.262)
 ICC_fixDur_rest
 
 ```
@@ -200,7 +200,7 @@ summary(distSpaceship_rest_null)
 
 ```{r ICC_distSpaceship_rest, include=TRUE}
 
-ICC_distSpaceship_rest <- 0.07741 / (0.07741 + 1.00426)
+ICC_distSpaceship_rest <- 0.08396 / (0.08396 + 1.01570)
 ICC_distSpaceship_rest
 
 ```
@@ -254,14 +254,14 @@ plot(fit.gamma)
 
 ```{r random_effects, include=TRUE}
 
-fixDur_explore_null <- lmer(fixation_duration ~ 1 + (1|ID), data=exploring_fixations, REML=FALSE)
+fixDur_explore_null <- glmer(fixation_duration ~ 1 + (1|ID), data=exploring_fixations, family = Gamma)
 summary(fixDur_explore_null)
 
 ```
 
 ```{r ICC_fixDur_explore, include=TRUE}
 
-ICC_fixDur_explore <- 0.02011 / (0.02011 + 0.09011)
+ICC_fixDur_explore <- 2.039 / (2.039 + 13.707)
 ICC_fixDur_explore
 
 ```
@@ -278,8 +278,27 @@ pred_fixDur_explore.slope3 <- glmer(fixation_duration ~ N_visible_obstacles * N_
 
 anova(pred_fixDur_explore, pred_fixDur_explore.slope, pred_fixDur_explore.slope2, pred_fixDur_explore.slope3)
 
-summary(pred_fixDur_explore.slope3)
+summary(pred_fixDur_explore)
 
+```
+
+```{r plot_fixation_duration_explore, echo=FALSE}
+
+plot_fixDur_explore <- plot_model(pred_fixDur_explore, 
+           type = "pred", 
+           terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
+           title = "",
+           colors = "Set2",
+           legend.title = TeX("$N_{ drift_{ visible}}$")
+           )
+
+# additional layout stuff
+plot_fixDur_explore <- plot_fixDur_explore + 
+  xlab(TeX("$N_{ obstacles_{ visible}}$")) +
+  xlim(0, 15) +
+  ylab("Fixation duration (s)")
+
+plot_fixDur_explore
 ```
 
 Discussing the results: ...
@@ -290,9 +309,15 @@ Discussing the results: ...
 
 hist(exploring_fixations$distance_to_spaceship, breaks=200)
 
-fit.gamma <- fitdist(c(na.exclude(exploring_fixations$distance_to_spaceship)), distr = "gamma", method = "mme")
+fit.gamma <- fitdist(c(na.exclude(exploring_fixations$distance_to_spaceship)), distr = "exp", method = "mme")
 summary(fit.gamma)
 plot(fit.gamma)
+
+#lnorm: AIC:  374016.8   BIC:  374034.8
+#gamma: AIC:  400144.8   BIC:  400162.8
+#exp: AIC:  407156.6   BIC:  407165.6
+
+
 
 ```
 
@@ -332,6 +357,25 @@ summary(pred_distSpaceship_explore)
 
 #summary()
 
+```
+
+```{r plot_distance_to_spaceship_explore, echo=FALSE}
+
+plot_distSpaceship_explore <- plot_model(pred_distSpaceship_explore, 
+           type = "pred", 
+           terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
+           title = "",
+           colors = "Set2",
+           legend.title = TeX("$N_{ drift_{ visible}}$")
+           )
+
+# additional layout stuff
+plot_distSpaceship_explore <- plot_distSpaceship_explore + 
+  xlab(TeX("$N_{ obstacles_{ visible}}$")) +
+  xlim(0, 15) +
+  ylab("Distance to Spaceship (visual degrees°)")
+
+plot_distSpaceship_explore
 ```
 
 Discussing the results: ...
@@ -384,6 +428,25 @@ summary(pred_saccAmp_progress)
 
 ```
 
+```{r plot_saccAmp_progress, echo=FALSE}
+
+plot_saccAmp_progress <- plot_model(pred_saccAmp_progress, 
+           type = "pred", 
+           terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
+           title = "",
+           colors = "Set2",
+           legend.title = TeX("$N_{ drift_{ visible}}$")
+           )
+
+# additional layout stuff
+plot_saccAmp_progress <- plot_saccAmp_progress + 
+  xlab(TeX("$N_{ obstacles_{ visible}}$")) +
+  xlim(0, 15) +
+  ylab("Saccade amplitude (visual degrees°)")
+
+plot_saccAmp_progress
+```
+
 Discussing the results: ...
 
 ## Progressive saccades - distance to closest obstacle (in pixel)
@@ -420,6 +483,25 @@ summary(pred_distObs_progress)
 
 ```
 
+```{r plot_distance_to_obstacles_progress, echo=FALSE}
+
+plot_distObs_progress <- plot_model(pred_distObs_progress, 
+           type = "pred", 
+           terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
+           title = "",
+           colors = "Set2",
+           legend.title = TeX("$N_{ drift_{ visible}}$")
+           )
+
+# additional layout stuff
+plot_distObs_progress <- plot_distObs_progress + 
+  xlab(TeX("$N_{ obstacles_{ visible}}$")) +
+  xlim(0, 15) +
+  ylab("Distance to nearest obstacle (in pixel)")
+
+plot_distObs_progress
+```
+
 Discussing the results: ...
 
 ## Regressive saccades - Saccade amplitude
@@ -454,6 +536,25 @@ ICC_saccAmp_regress
 pred_saccAmp_regress <- glm(saccade_amplitude ~ N_visible_obstacles * N_visible_drift_tiles + input_noise, data=regressive_saccades, family = Gamma)
 summary(pred_saccAmp_regress)
 
+```
+
+```{r plot_saccAmp_regress, echo=FALSE}
+
+plot_saccAmp_regress <- plot_model(pred_saccAmp_regress, 
+           type = "pred", 
+           terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
+           title = "",
+           colors = "Set2",
+           legend.title = TeX("$N_{ drift_{ visible}}$")
+           )
+
+# additional layout stuff
+plot_saccAmp_regress <- plot_saccAmp_regress + 
+  xlab(TeX("$N_{ obstacles_{ visible}}$")) +
+  xlim(0, 15) +
+  ylab("Saccade amplitude (visual degrees°)")
+
+plot_saccAmp_regress
 ```
 
 Discussing the results: ...
@@ -498,6 +599,25 @@ anova(pred_distSpaceship_regress, pred_distSpaceship_regress.slope, pred_distSpa
 
 summary(pred_distSpaceship_regress.slope3)
 
+```
+
+```{r plot_distance_to_spaceship_regress, echo=FALSE}
+
+plot_distSpaceship_regress <- plot_model(pred_distSpaceship_regress.slope3, 
+           type = "pred", 
+           terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
+           title = "",
+           colors = "Set2",
+           legend.title = TeX("$N_{ drift_{ visible}}$")
+           )
+
+# additional layout stuff
+plot_distSpaceship_regress <- plot_distSpaceship_regress + 
+  xlab(TeX("$N_{ obstacles_{ visible}}$")) +
+  xlim(0, 15) +
+  ylab("Distance to Spaceship (visual degrees°)")
+
+plot_distSpaceship_regress
 ```
 
 Discussing the results: ...
@@ -559,6 +679,25 @@ anova(inputDur, inputDur.slope2)
 
 summary(inputDur.slope2)
 
+```
+
+```{r plot_fixation_duration_explore, echo=FALSE}
+
+plot_inputDur <- plot_model(inputDur.slope2, 
+           type = "pred", 
+           terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
+           title = "",
+           colors = "Set2",
+           legend.title = TeX("$N_{ drift_{ visible}}$")
+           )
+
+# additional layout stuff
+plot_inputDur <- plot_inputDur + 
+  xlab(TeX("$N_{ obstacles_{ visible}}$")) +
+  xlim(0, 15) +
+  ylab("Input duration (s)")
+
+plot_inputDur
 ```
 
 # Responses to SoC questionnaire after each trial

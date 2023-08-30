@@ -46,53 +46,6 @@ resting_fixations <- data_fixations[data_fixations$exploring_fixation == FALSE, 
 
 ```
 
-## All fixations - Fixation duration
-
-First we check how well the distributed fixation durations in the data set match a gamma distribution.
-```{r check_fixDur_fit, include=TRUE}
-
-hist(data_fixations$fixation_duration, breaks=200)
-
-fit.gamma <- fitdist(data_fixations$fixation_duration, distr = "gamma", method = "mme")
-summary(fit.gamma)
-plot(fit.gamma)
-
-```
-
-### Random intercept effects (for fixation duration)
-
-Before we build the model investigating our hypotheses, we will explore code (participant ID) as possible random intercept effect. I will do that for each of the predicted variables before building the models. For this we will fit null models without fixed effects and only enter code as random intercept effect, looking at how much variance in the predicted variable is explained by code.
-```{r random_effects, include=TRUE}
-
-fixDur_null <- glmer(fixation_duration ~ 1 + (1|code), data=data_fixations, family = Gamma)
-summary(fixDur_null)
-
-```
-
-```{r ICC_fixDur, include=TRUE}
-
-ICC_fixDur <- 2.494 / (2.494 + 43.736)
-ICC_fixDur
-
-```
-
-Only 5% is explained by code. We will nevertheless include it as random intercept. We will explore random intercept effects, when building the models.
-
-For *fixation duration*, we will run the model assuming an interaction effect between the type of fixation and success.
-```{r fixation_duration, include=TRUE}
-
-pred_fixDur <- glmer(fixation_duration ~ success*exploring_fixation + (1|code), data=data_fixations, family = Gamma)
-
-pred_fixDur.slope <- glmer(fixation_duration ~ success*exploring_fixation + (1+success|code), data=data_fixations, family = Gamma)
-
-pred_fixDur.slope2 <- glmer(fixation_duration ~ success*exploring_fixation + (1+success*exploring_fixation|code), data=data_fixations, family = Gamma) # model fails to converge. Random effects structure too complicated
-
-anova(pred_fixDur, pred_fixDur.slope)
-
-summary(pred_fixDur)
-
-```
-
 ## Resting fixations - Fixation duration
 
 ```{r check_fixDur_rest_fit, include=TRUE}
@@ -153,7 +106,7 @@ summary(distSpaceship_null)
 
 ```{r ICC_distSpaceship, include=TRUE}
 
-ICC_distSpaceship <- 198.3 / (198.3 + 1755.4)
+ICC_distSpaceship <- 0.08819 / (0.08819 + 0.78057)
 ICC_distSpaceship
 
 ```
@@ -240,7 +193,7 @@ summary(distObstacle_null)
 
 ```{r ICC_distObstacle, include=TRUE}
 
-ICC_distObstacle <- 1.865e-07 / (1.865e-07 + 1.629e-01)
+ICC_distObstacle <- 0.0003713 / (0.0003713 + 0.1456821)
 ICC_distObstacle
 
 ```
@@ -273,45 +226,6 @@ data_saccades <- data_saccades[data_saccades$saccade_amplitude > 0, ]
 
 progressive_saccades <- data_saccades[data_saccades$progressive_saccade == TRUE, ]
 regressive_saccades <- data_saccades[data_saccades$progressive_saccade == FALSE, ]
-
-```
-
-## All saccades - Saccade amplitude
-
-```{r check_saccAmp_fit, include=TRUE}
-
-hist(data_saccades$saccade_amplitude, breaks=200)
-
-fit.gamma <- fitdist(data_saccades$saccade_amplitude, distr = "gamma", method = "mme")
-summary(fit.gamma)
-plot(fit.gamma)
-
-```
-
-```{r random_effects, include=TRUE}
-
-saccAmp_null <- glmer(saccade_amplitude ~ 1 + (1|code), data=data_saccades, family = Gamma)
-summary(saccAmp_null)
-
-```
-
-```{r ICC_saccAmp, include=TRUE}
-
-ICC_saccAmp <- 0.3122 / (0.3122 + 2.4435)
-ICC_saccAmp
-
-```
-
-For *saccade amplitude*, we will run the model assuming an interaction effect between the type of saccade and success.
-```{r saccade_amplitude, include=TRUE}
-
-pred_saccAmp <- glmer(saccade_amplitude ~ success*progressive_saccade + (1|code), data=data_saccades, family = Gamma)
-
-pred_saccAmp.slope <- glmer(saccade_amplitude ~ success*progressive_saccade + (1+success|code), data=data_saccades, family = Gamma)
-
-anova(pred_saccAmp, pred_saccAmp.slope)
-
-summary(pred_saccAmp)
 
 ```
 
