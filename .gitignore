@@ -12,6 +12,7 @@ soc_data/*
 crash_runs/*
 videos/*
 .Rhistory
+.RData
 .ipynb_checkpoints
 data_analysis.ipynb
 situational_analysis.ipynb
