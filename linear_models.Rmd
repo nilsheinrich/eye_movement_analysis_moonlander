@@ -123,46 +123,51 @@ resting_fixations <- data_fixations[data_fixations$exploring_fixation == 0, ]
 
 hist(resting_fixations$fixation_duration, breaks=200)
 
-fit.gamma <- fitdist(resting_fixations$fixation_duration, distr = "gamma", method = "mme")
-summary(fit.gamma)
-plot(fit.gamma)
+resting_fixations$fixation_duration.log <- log(resting_fixations$fixation_duration)
+
+fit.gauss <- fitdist(resting_fixations$fixation_duration.log, distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
+
+#fit.gamma <- fitdist(resting_fixations$fixation_duration, distr = "gamma", method = "mme")
+#summary(fit.gamma)
+#plot(fit.gamma)
 
 ```
 
 ```{r random_effects, include=TRUE}
 
-fixDur_rest_null <- glmer(fixation_duration ~ 1 + (1|ID), data=resting_fixations, family = Gamma)
+fixDur_rest_null <- lmer(fixation_duration ~ 1 + (1|ID), data=resting_fixations, REML = FALSE)
 summary(fixDur_rest_null)
 
 ```
 
 ```{r ICC_fixDur_rest, include=TRUE}
 
-ICC_fixDur_rest <- 1.653 / (1.653 + 19.262)
+ICC_fixDur_rest <- 0.02642 / (0.02642 + 0.10944)
 ICC_fixDur_rest
 
 ```
 
 ```{r fixation_duration_rest, include=TRUE}
 
-pred_fixDur_rest <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=resting_fixations, family = Gamma)
+pred_fixDur_rest <- lmer(fixation_duration.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=resting_fixations, REML = FALSE)
 
-pred_fixDur_rest.slope <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=resting_fixations, family = Gamma)
+#pred_fixDur_rest.slope <- lmer(fixation_duration.log ~ N_visible_obstacles * N_visible_drift_tiles + #input_noise + (1+N_visible_obstacles|ID), data=resting_fixations, REML = FALSE) # model does not converge
 
-pred_fixDur_rest.slope2 <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=resting_fixations, family = Gamma)
+pred_fixDur_rest.slope2 <- lmer(fixation_duration.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=resting_fixations, REML = FALSE)
 
-anova(pred_fixDur_rest, pred_fixDur_rest.slope, pred_fixDur_rest.slope2)
+#anova(pred_fixDur_rest, pred_fixDur_rest.slope, pred_fixDur_rest.slope2)
 
-summary(pred_fixDur_rest.slope)
+anova(pred_fixDur_rest, pred_fixDur_rest.slope2)
 
-#powerSim(pred_fixDur_rest.slope, "input_noise", nsim=100)
-#powerSim(pred_fixDur_rest.slope, nsim = 100, test = fixed("input_noise", method = "kr"))
+summary(pred_fixDur_rest.slope2)
 
 ```
 
 ```{r plot_fixation_duration_rest, echo=FALSE}
 
-plot_fixDurRest <- plot_model(pred_fixDur_rest.slope, 
+plot_fixDurRest <- plot_model(pred_fixDur_rest.slope2, 
            type = "pred", 
            terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
            title = "",
@@ -177,6 +182,27 @@ plot_fixDurRest <- plot_fixDurRest +
   ylab("Fixation Duration (s)")
 
 plot_fixDurRest
+```
+
+Discussing the results: ...
+
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_fixDur_rest.slope2)
+
+# profiling
+#p_lmm <- profile(lmm, which="beta_")
+#confint(p_lmm)
+
+# bootstrap
+confint(pred_fixDur_rest.slope2, nsim=100, parm=c("N_visible_obstacles", "N_visible_drift_tiles", "input_noiseS", "input_noiseW"), method="boot")
+
+# Wald
+confint(pred_fixDur_rest.slope2,parm=c("N_visible_obstacles", "N_visible_drift_tiles", "input_noiseS", "input_noiseW"),
+        method="Wald")
+
+confint(pred_fixDur_rest.slope2,parm="input_noise",
+        method="Wald")
 ```
 
 ## Resting fixations - Fixation location (distance to spaceship in visual degrees)
@@ -209,19 +235,19 @@ ICC_distSpaceship_rest
 
 pred_distSpaceship_rest <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=resting_fixations, REML = FALSE)
 
-pred_distSpaceship_rest.slope <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=resting_fixations, REML = FALSE)
+pred_distSpaceship_rest.slope <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=resting_fixations, REML = FALSE)  # does not converge
 
-pred_distSpaceship_rest.slope2 <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=resting_fixations, REML = FALSE)  # does not converge
+pred_distSpaceship_rest.slope2 <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=resting_fixations, REML = FALSE)
 
-anova(pred_distSpaceship_rest, pred_distSpaceship_rest.slope, pred_distSpaceship_rest.slope2)
+anova(pred_distSpaceship_rest, pred_distSpaceship_rest.slope2)
 
-summary(pred_distSpaceship_rest.slope)
+summary(pred_distSpaceship_rest.slope2)
 
 ```
 
 ```{r plot_distance_to_spaceship_rest, echo=FALSE}
 
-plot_distSpaceshipRest <- plot_model(pred_distSpaceship_rest.slope, 
+plot_distSpaceshipRest <- plot_model(pred_distSpaceship_rest.slope2, 
            type = "pred", 
            terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
            title = "",
@@ -240,51 +266,67 @@ plot_distSpaceshipRest
 
 Discussing the results: ...
 
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_distSpaceship_rest.slope2)
+
+# bootstrap
+confint(pred_distSpaceship_rest.slope2, nsim=100, parm=c("N_visible_obstacles", "N_visible_drift_tiles", "input_noiseS", "N_visible_obstacles:N_visible_drift_tiles"), method="boot")
+
+#confint(pred_distSpaceship_rest.slope2, nsim=100, parm=c("input_noiseS", #"N_visible_obstacles:N_visible_drift_tiles"), method="boot")
+
+# Wald
+#confint(pred_fixDur_rest.slope2,parm=c("N_visible_obstacles", "N_visible_drift_tiles", "input_noiseS", #"input_noiseW"), method="Wald")
+
+```
+
 ## Exploring fixations - Fixation duration (s)
 
 ```{r check_fixDur_explore_fit, include=TRUE}
 
 hist(exploring_fixations$fixation_duration, breaks=200)
 
-fit.gamma <- fitdist(exploring_fixations$fixation_duration, distr = "gamma", method = "mme")
-summary(fit.gamma)
-plot(fit.gamma)
+exploring_fixations$fixation_duration.log <- log(exploring_fixations$fixation_duration)
+
+fit.gauss <- fitdist(exploring_fixations$fixation_duration.log, distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
 
 ```
 
 ```{r random_effects, include=TRUE}
 
-fixDur_explore_null <- glmer(fixation_duration ~ 1 + (1|ID), data=exploring_fixations, family = Gamma)
+fixDur_explore_null <- lmer(fixation_duration ~ 1 + (1|ID), data=exploring_fixations, REML = FALSE)
 summary(fixDur_explore_null)
 
 ```
 
 ```{r ICC_fixDur_explore, include=TRUE}
 
-ICC_fixDur_explore <- 2.039 / (2.039 + 13.707)
+ICC_fixDur_explore <- 0.02030 / (0.02030 + 0.09249)
 ICC_fixDur_explore
 
 ```
 
 ```{r fixation_duration_explore, include=TRUE}
 
-pred_fixDur_explore <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=exploring_fixations, family = Gamma)
+pred_fixDur_explore <- lmer(fixation_duration.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=exploring_fixations, REML = FALSE)
 
-pred_fixDur_explore.slope <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=exploring_fixations, family = Gamma)
+pred_fixDur_explore.slope <- lmer(fixation_duration.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=exploring_fixations, REML = FALSE)
 
-pred_fixDur_explore.slope2 <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=exploring_fixations, family = Gamma)
+pred_fixDur_explore.slope2 <- lmer(fixation_duration.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=exploring_fixations, REML = FALSE)
 
-pred_fixDur_explore.slope3 <- glmer(fixation_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+input_noise|ID), data=exploring_fixations, family = Gamma)
+pred_fixDur_explore.slope3 <- lmer(fixation_duration.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+input_noise|ID), data=exploring_fixations, REML = FALSE) # model fails to converge
 
-anova(pred_fixDur_explore, pred_fixDur_explore.slope, pred_fixDur_explore.slope2, pred_fixDur_explore.slope3)
+anova(pred_fixDur_explore, pred_fixDur_explore.slope, pred_fixDur_explore.slope2)
 
-summary(pred_fixDur_explore)
+summary(pred_fixDur_explore.slope)
 
 ```
 
 ```{r plot_fixation_duration_explore, echo=FALSE}
 
-plot_fixDur_explore <- plot_model(pred_fixDur_explore, 
+plot_fixDur_explore <- plot_model(pred_fixDur_explore.slope, 
            type = "pred", 
            terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
            title = "",
@@ -303,65 +345,72 @@ plot_fixDur_explore
 
 Discussing the results: ...
 
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_fixDur_explore.slope)
+
+# bootstrap
+confint(pred_fixDur_explore.slope, nsim=100, parm=c("N_visible_obstacles", "N_visible_drift_tiles", "input_noiseS", "input_noiseW", "N_visible_obstacles:N_visible_drift_tiles"), method="boot")
+
+confint(pred_fixDur_explore.slope, nsim=100, parm=c("input_noiseS", "input_noiseW",  "N_visible_obstacles:N_visible_drift_tiles"), method="boot")
+
+# Wald
+#confint(pred_fixDur_rest.slope2,parm=c("N_visible_obstacles", "N_visible_drift_tiles", "input_noiseS", #"input_noiseW"), method="Wald")
+
+```
+
 ## Exploring fixations - Fixation location (distance to spaceship in visual degrees)
 
 ```{r check_distSpaceship_explore_fit, include=TRUE}
 
 hist(exploring_fixations$distance_to_spaceship, breaks=200)
 
-fit.gamma <- fitdist(c(na.exclude(exploring_fixations$distance_to_spaceship)), distr = "exp", method = "mme")
-summary(fit.gamma)
-plot(fit.gamma)
+exploring_fixations$distance_to_spaceship.log <- log(exploring_fixations$distance_to_spaceship)
+
+fit.gauss <- fitdist(c(na.exclude(exploring_fixations$distance_to_spaceship.log)), distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
 
 #lnorm: AIC:  374016.8   BIC:  374034.8
 #gamma: AIC:  400144.8   BIC:  400162.8
 #exp: AIC:  407156.6   BIC:  407165.6
 
-
+#log-transformed with norm: AIC:  103144.4   BIC:  103162.4
 
 ```
 
 ```{r random_effects, include=TRUE}
 
-distSpaceship_explore_null <- glmer(distance_to_spaceship ~ 1 + (1|ID), data=exploring_fixations, family = Gamma)
+distSpaceship_explore_null <- lmer(distance_to_spaceship.log ~ 1 + (1|ID), data=exploring_fixations, REML = FALSE)
 summary(distSpaceship_explore_null)
 
 ```
 
 ```{r ICC_distSpaceship_explore, include=TRUE}
 
-ICC_distSpaceship_explore <- 0.0003975 / (0.0003975 + 0.3856651)
+ICC_distSpaceship_explore <- 0.05163 / (0.05163 + 0.24074)
 ICC_distSpaceship_explore
 
 ```
 
 ```{r distance_to_spaceship_explore, include=TRUE}
 
-# ID does not explain variance in the predicted variable. We might therefore omit including it as random effect
-pred_distSpaceship_explore <- glm(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise, data=exploring_fixations, family = Gamma)
-summary(pred_distSpaceship_explore)
+pred_distSpaceship_explore <- lmer(distance_to_spaceship.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=exploring_fixations, REML = FALSE)
 
-# including random effects
-#pred_distSpaceship_explore <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=exploring_fixations, REML = FALSE)
-#summary(pred_distSpaceship_explore)
+pred_distSpaceship_explore.slope <- lmer(distance_to_spaceship.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=exploring_fixations, REML = FALSE)
+#model fails to converge
 
-#pred_distSpaceship_explore.slope <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=exploring_fixations, REML = FALSE)
-#summary(pred_distSpaceship_explore.slope)
+pred_distSpaceship_explore.slope2 <- lmer(distance_to_spaceship.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=exploring_fixations, REML = FALSE)
 
-#anova(pred_distSpaceship_explore, pred_distSpaceship_explore.slope)
+anova(pred_distSpaceship_explore, pred_distSpaceship_explore.slope2)
 
-#pred_distSpaceship_explore.slope2 <- lmer(distance_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=exploring_fixations, REML = FALSE)
-#summary(pred_distSpaceship_explore.slope2)
-
-#anova(pred_distSpaceship_explore, pred_distSpaceship_explore.slope, pred_distSpaceship_explore.slope2)
-
-#summary()
+summary(pred_distSpaceship_explore.slope2)
 
 ```
 
 ```{r plot_distance_to_spaceship_explore, echo=FALSE}
 
-plot_distSpaceship_explore <- plot_model(pred_distSpaceship_explore, 
+plot_distSpaceship_explore <- plot_model(pred_distSpaceship_explore.slope2, 
            type = "pred", 
            terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
            title = "",
@@ -379,6 +428,20 @@ plot_distSpaceship_explore
 ```
 
 Discussing the results: ...
+
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_distSpaceship_explore.slope2)
+
+# bootstrap
+confint(pred_distSpaceship_explore.slope2, nsim=100, parm=c("N_visible_obstacles", "N_visible_drift_tiles", "input_noiseS", "input_noiseW", "N_visible_obstacles:N_visible_drift_tiles"), method="boot")
+
+#confint(pred_fixDur_explore.slope, nsim=100, parm=c("input_noiseS", "input_noiseW",  "N_visible_obstacles:N_visible_drift_tiles"), method="boot")
+
+# Wald
+#confint(pred_fixDur_rest.slope2,parm=c("N_visible_obstacles", "N_visible_drift_tiles", "input_noiseS", #"input_noiseW"), method="Wald")
+
+```
 
 # Predicting saccades
 
@@ -400,37 +463,48 @@ regressive_saccades <- data_saccades[data_saccades$saccade_direction_y > 0, ]
 
 hist(progressive_saccades$saccade_amplitude, breaks=200)
 
-fit.gamma <- fitdist(progressive_saccades$saccade_amplitude, distr = "gamma", method = "mme")
-summary(fit.gamma)
-plot(fit.gamma)
+progressive_saccades$saccade_amplitude.log <- log(progressive_saccades$saccade_amplitude)
+
+fit.gauss <- fitdist(progressive_saccades$saccade_amplitude.log, distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
+
+#Gamma: AIC:  137235.3   BIC:  137251.8 
+#log-transformed with norm: AIC:  101111.7   BIC:  101128.1 
 
 ```
 
 ```{r random_effects, include=TRUE}
 
-saccAmp_progress_null <- glmer(saccade_amplitude ~ 1 + (1|ID), data=progressive_saccades, family = Gamma)
+saccAmp_progress_null <- lmer(saccade_amplitude.log ~ 1 + (1|ID), data=progressive_saccades, REML = FALSE)
 summary(saccAmp_progress_null)
 
 ```
 
 ```{r ICC_saccAmp_progress, include=TRUE}
 
-ICC_saccAmp_progress <- 0.008486 / (0.008486 + 1.225939)
+ICC_saccAmp_progress <- 0.213 / (0.213 + 2.101)
 ICC_saccAmp_progress
 
 ```
 
 ```{r saccAmp_progress, include=TRUE}
 
-# ID does not explain variance in the predicted variable. We might therefore omit including it as random effect
-pred_saccAmp_progress <- glm(saccade_amplitude ~ N_visible_obstacles * N_visible_drift_tiles + input_noise, data=progressive_saccades, family = Gamma)
-summary(pred_saccAmp_progress)
+pred_saccAmp_progress <- lmer(saccade_amplitude.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=progressive_saccades, REML = FALSE)
+
+pred_saccAmp_progress.slope <- lmer(saccade_amplitude.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=progressive_saccades, REML = FALSE) # model fails to converge
+
+pred_saccAmp_progress.slope2 <- lmer(saccade_amplitude.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=progressive_saccades, REML = FALSE)
+
+anova(pred_saccAmp_progress, pred_saccAmp_progress.slope2)
+
+summary(pred_saccAmp_progress.slope2)
 
 ```
 
 ```{r plot_saccAmp_progress, echo=FALSE}
 
-plot_saccAmp_progress <- plot_model(pred_saccAmp_progress, 
+plot_saccAmp_progress <- plot_model(pred_saccAmp_progress.slope2, 
            type = "pred", 
            terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
            title = "",
@@ -449,43 +523,65 @@ plot_saccAmp_progress
 
 Discussing the results: ...
 
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_saccAmp_progress.slope2)
+
+# bootstrap
+confint(pred_saccAmp_progress.slope2, nsim=100, parm=c("N_visible_obstacles", "input_noiseS", "input_noiseW", "N_visible_obstacles:N_visible_drift_tiles"), method="boot")
+
+```
+
 ## Progressive saccades - distance to closest obstacle (in pixel)
 
 ```{r check_distObs_progress_fit, include=TRUE}
 
 hist(progressive_saccades$saccLandSite_dist_to_closestObstacle, breaks=200)
 
-fit.gamma <- fitdist(c(na.exclude(progressive_saccades$saccLandSite_dist_to_closestObstacle)), distr = "gamma", method = "mme")
-summary(fit.gamma)
-plot(fit.gamma)
+hist(log(progressive_saccades$saccLandSite_dist_to_closestObstacle), breaks=200)
+
+progressive_saccades$saccLandSite_dist_to_closestObstacle.log <- log(progressive_saccades$saccLandSite_dist_to_closestObstacle)
+
+fit.gauss <- fitdist(c(na.exclude(progressive_saccades$saccLandSite_dist_to_closestObstacle.log)), distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
 
 ```
 
 ```{r random_effects, include=TRUE}
 
-distObs_explore_null <- glmer(saccLandSite_dist_to_closestObstacle ~ 1 + (1|ID), data=progressive_saccades, family = Gamma)
+distObs_explore_null <- lmer(saccLandSite_dist_to_closestObstacle.log ~ 1 + (1|ID), data=progressive_saccades, REML = FALSE)
 summary(distObs_explore_null)
 
 ```
 
 ```{r ICC_distObs_progress, include=TRUE}
 
-ICC_distObs_progress <- 0.00183 / (0.00183 + 0.79070)
+ICC_distObs_progress <- 0.1006 / (0.1006 + 0.7920)
 ICC_distObs_progress
 
 ```
 
 ```{r distObs_progress, include=TRUE}
 
-# ID does not explain variance in the predicted variable. We might therefore omit including it as random effect
-pred_distObs_progress <- glm(saccLandSite_dist_to_closestObstacle ~ N_visible_obstacles * N_visible_drift_tiles + input_noise, data=progressive_saccades, family = Gamma)
-summary(pred_distObs_progress)
+pred_distObs_progress <- lmer(saccLandSite_dist_to_closestObstacle.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=progressive_saccades, REML = FALSE)
+
+pred_distObs_progress.slope <- lmer(saccLandSite_dist_to_closestObstacle.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=progressive_saccades, REML = FALSE)
+# model fails to converge
+
+pred_distObs_progress.slope2 <- lmer(saccLandSite_dist_to_closestObstacle.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=progressive_saccades, REML = FALSE)
+
+pred_distObs_progress.slope3 <- lmer(saccLandSite_dist_to_closestObstacle.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+input_noise|ID), data=progressive_saccades, REML = FALSE)
+
+anova(pred_distObs_progress, pred_distObs_progress.slope2, pred_distObs_progress.slope3)
+
+summary(pred_distObs_progress.slope3)
 
 ```
 
 ```{r plot_distance_to_obstacles_progress, echo=FALSE}
 
-plot_distObs_progress <- plot_model(pred_distObs_progress, 
+plot_distObs_progress <- plot_model(pred_distObs_progress.slope3, 
            type = "pred", 
            terms = c("N_visible_obstacles", "N_visible_drift_tiles", "input_noise"),
            title = "",
@@ -504,28 +600,41 @@ plot_distObs_progress
 
 Discussing the results: ...
 
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_distObs_progress.slope3)
+
+# bootstrap
+confint(pred_distObs_progress.slope3, nsim=100, parm=c("N_visible_obstacles"), method="boot")
+
+```
+
 ## Regressive saccades - Saccade amplitude
 
 ```{r check_saccAmp_regress_fit, include=TRUE}
 
 hist(regressive_saccades$saccade_amplitude, breaks=200)
 
-fit.gamma <- fitdist(regressive_saccades$saccade_amplitude, distr = "gamma", method = "mme")
-summary(fit.gamma)
-plot(fit.gamma)
+hist(log(regressive_saccades$saccade_amplitude), breaks=200)
+
+regressive_saccades$saccade_amplitude.log <- log(regressive_saccades$saccade_amplitude)
+
+fit.gauss <- fitdist(regressive_saccades$saccade_amplitude.log, distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
 
 ```
 
 ```{r random_effects, include=TRUE}
 
-saccAmp_regress_null <- glmer(saccade_amplitude ~ 1 + (1|ID), data=regressive_saccades, family = Gamma)
+saccAmp_regress_null <- lmer(saccade_amplitude ~ 1 + (1|ID), data=regressive_saccades, REML = FALSE)
 summary(saccAmp_regress_null)
 
 ```
 
 ```{r ICC_saccAmp_regress, include=TRUE}
 
-ICC_saccAmp_regress <- 0.06734 / (0.06734 + 2.29774)
+ICC_saccAmp_regress <- 0.6771 / (0.6771 + 15.3863)
 ICC_saccAmp_regress
 
 ```
@@ -533,7 +642,7 @@ ICC_saccAmp_regress
 ```{r saccAmp_regress, include=TRUE}
 
 # ID does not explain variance in the predicted variable. We might therefore omit including it as random effect
-pred_saccAmp_regress <- glm(saccade_amplitude ~ N_visible_obstacles * N_visible_drift_tiles + input_noise, data=regressive_saccades, family = Gamma)
+pred_saccAmp_regress <- lm(saccade_amplitude.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise, data=regressive_saccades)
 summary(pred_saccAmp_regress)
 
 ```
@@ -580,7 +689,7 @@ summary(distSpaceship_regress_null)
 
 ```{r ICC_distSpaceship_regress, include=TRUE}
 
-ICC_distSpaceship_regress <- 54.95 / (54.95 + 236.04)
+ICC_distSpaceship_regress <- 53.49 / (53.49 + 234.88)
 ICC_distSpaceship_regress
 
 ```
@@ -595,7 +704,7 @@ pred_distSpaceship_regress.slope2 <- lmer(saccLandSite_dist_to_spaceship ~ N_vis
 
 pred_distSpaceship_regress.slope3 <- lmer(saccLandSite_dist_to_spaceship ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+input_noise|ID), data=regressive_saccades, REML = FALSE)
 
-anova(pred_distSpaceship_regress, pred_distSpaceship_regress.slope, pred_distSpaceship_regress.slope2, pred_distSpaceship_regress.slope3)
+anova(pred_distSpaceship_regress, pred_distSpaceship_regress.slope2, pred_distSpaceship_regress.slope3)
 
 summary(pred_distSpaceship_regress.slope3)
 
@@ -620,6 +729,15 @@ plot_distSpaceship_regress <- plot_distSpaceship_regress +
 plot_distSpaceship_regress
 ```
 
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_distSpaceship_regress.slope3)
+
+# bootstrap
+confint(pred_distSpaceship_regress.slope3, nsim=100, parm=c("N_visible_obstacles", "N_visible_drift_tiles"), method="boot")
+
+```
+
 Discussing the results: ...
 
 # Input data - input duration
@@ -642,46 +760,47 @@ input_data <- within(input_data, input_noise <- relevel(input_noise, ref = "N"))
 
 hist(input_data$input_duration, breaks=200)
 
-fit.gamma <- fitdist(c(na.exclude(input_data$input_duration)), distr = "gamma", method = "mme")
-summary(fit.gamma)
-plot(fit.gamma)
+hist(log(input_data$input_duration), breaks=200)
+
+input_data$input_duration.log <- log(input_data$input_duration)
+
+fit.gauss <- fitdist(c(na.exclude(input_data$input_duration.log)), distr = "norm", method = "mme")
+summary(fit.gauss)
+plot(fit.gauss)
 
 ```
 
 ```{r random_effects, include=TRUE}
 
-inputDur_null <- glmer(input_duration ~ 1 + (1|ID), data=input_data, family = Gamma)
+inputDur_null <- lmer(input_duration.log ~ 1 + (1|ID), data=input_data, REML = FALSE)
 summary(inputDur_null)
 
 ```
 
 ```{r ICC_inputDur, include=TRUE}
 
-ICC_inputDur <- 0.7201 / (0.7201 + 0.7758)
+ICC_inputDur <- 0.05978 / (0.05978 + 0.47762)
 ICC_inputDur
 
 ```
 
 ```{r inputDur, include=TRUE}
 
-inputDur <- glmer(input_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=input_data, family = Gamma)
+inputDur <- lmer(input_duration.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1|ID), data=input_data, REML = FALSE)
 
-inputDur.slope <- glmer(input_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=input_data, family = Gamma)
+inputDur.slope <- lmer(input_duration.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_obstacles|ID), data=input_data, REML = FALSE) # model fails to converge
 
-inputDur.slope2 <- glmer(input_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=input_data, family = Gamma)
+inputDur.slope2 <- lmer(input_duration.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+N_visible_drift_tiles|ID), data=input_data, REML = FALSE)
 
-inputDur.slope3 <- glmer(input_duration ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+input_noise|ID), data=input_data, family = Gamma)  # does not converge 
+inputDur.slope3 <- lmer(input_duration.log ~ N_visible_obstacles * N_visible_drift_tiles + input_noise + (1+input_noise|ID), data=input_data, REML = FALSE)
 
-anova(inputDur, inputDur.slope, inputDur.slope2, inputDur.slope3)
-
-# models significantly different
-anova(inputDur, inputDur.slope2)
+anova(inputDur, inputDur.slope2, inputDur.slope3)
 
 summary(inputDur.slope2)
 
 ```
 
-```{r plot_fixation_duration_explore, echo=FALSE}
+```{r plot_input_duration, echo=FALSE}
 
 plot_inputDur <- plot_model(inputDur.slope2, 
            type = "pred", 
@@ -698,6 +817,15 @@ plot_inputDur <- plot_inputDur +
   ylab("Input duration (s)")
 
 plot_inputDur
+```
+
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(inputDur.slope2)
+
+# bootstrap
+confint(inputDur.slope2, nsim=100, parm=c("N_visible_obstacles", "N_visible_drift_tiles", "N_visible_obstacles:N_visible_drift_tiles"), method="boot")
+
 ```
 
 # Responses to SoC questionnaire after each trial
@@ -743,7 +871,7 @@ summary(soc_null)
 
 ```{r ICC_soc, include=TRUE}
 
-ICC_soc <- 0.3471 / (0.3471 + 2.5151)
+ICC_soc <- 0.3287 / (0.3287 + 2.4395)
 ICC_soc
 
 ```
@@ -754,14 +882,33 @@ soc_model <- lmer(SoC ~ done + drift*level_difficulty + input_noise + (1|ID),  d
 
 soc_model.slope <- lmer(SoC ~ done + drift*level_difficulty + input_noise + (1+done|ID),  data = soc_data, REML = FALSE)
 
-soc_model.slope2 <- lmer(SoC ~ done + drift*level_difficulty + input_noise + (1+drift*level_difficulty|ID),  data = soc_data, REML = FALSE)  # does not converge
+soc_model.slope2 <- lmer(SoC ~ done + drift*level_difficulty + input_noise + (1+drift*level_difficulty|ID),  data = soc_data, REML = FALSE)  # isSingular...
 
 soc_model.slope3 <- lmer(SoC ~ done + drift*level_difficulty + input_noise + (1+input_noise|ID),  data = soc_data, REML = FALSE)  # isSingular...
 
-anova(soc_model, soc_model.slope, soc_model.slope2, soc_model.slope3)
+anova(soc_model, soc_model.slope)
 
 summary(soc_model.slope)
 
+```
+
+```{r plot_soc, echo=FALSE}
+# logical do not work...
+plot_soc <- plot_model(soc_model.slope, 
+           type = "pred", 
+           terms = c("done", "drift", "level_difficulty", "input_noise"),
+           title = "",
+           colors = "Set2",
+           legend.title = TeX("$factor lines$")
+           )
+
+# additional layout stuff
+plot_soc <- plot_soc + 
+  xlab(TeX("$factor on x-axis$")) +
+  #xlim(0, ?) +
+  ylab("SoC responded")
+
+plot_soc
 ```
 
 Discussing the results: ...
