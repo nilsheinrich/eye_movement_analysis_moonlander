@@ -16,6 +16,9 @@ library(lmerTest)
 library(sjPlot)
 library(ggplot2)
 library(fitdistrplus)
+
+set.seed(36)
+N_iterations <- 10000
 ```
 
 ```{r data, include=FALSE}
@@ -67,8 +70,6 @@ plot(fit.gauss)
 
 ```{r random_effects, include=TRUE}
 
-fixDur_rest_null <- glmer(fixation_duration ~ 1 + (1|code), data=resting_fixations, family = Gamma)
-
 fixDur_rest_null <- lmer(fixation_duration.log ~ 1 + (1|code), data=resting_fixations, REML = FALSE)
 
 summary(fixDur_rest_null)
@@ -76,8 +77,6 @@ summary(fixDur_rest_null)
 ```
 
 ```{r ICC_fixDur_rest, include=TRUE}
-
-ICC_fixDur_rest <- 34.068 / (34.068 + 2.193)
 
 ICC_fixDur_rest <- 1.251 / (1.251 + 1.662)
 
@@ -87,14 +86,10 @@ ICC_fixDur_rest
 
 ```{r fixation_duration, include=TRUE}
 
-pred_fixDur_rest <- glmer(fixation_duration ~ success + (1|code), data=resting_fixations, family = Gamma)
-
-pred_fixDur_rest.slope <- glmer(fixation_duration ~ success + (1+success|code), data=resting_fixations, family = Gamma)  # isSingular
-
 # log normal
-pred_fixDur_rest <- lmer(fixation_duration ~ success + (1|code), data=resting_fixations, REML = FALSE)
+pred_fixDur_rest <- lmer(fixation_duration.log ~ success + (1|code), data=resting_fixations, REML = FALSE)
 
-pred_fixDur_rest.slope <- lmer(fixation_duration ~ success + (1+success|code), data=resting_fixations, REML = FALSE)
+pred_fixDur_rest.slope <- lmer(fixation_duration.log ~ success + (1+success|code), data=resting_fixations, REML = FALSE)
 
 anova(pred_fixDur_rest, pred_fixDur_rest.slope)
 
@@ -107,7 +102,7 @@ summary(pred_fixDur_rest.slope)
 fixef(pred_fixDur_rest.slope)
 
 # bootstrap
-confint(pred_fixDur_rest.slope, nsim=100, parm=c("successTRUE"), method="boot")
+confint(pred_fixDur_rest.slope, nsim=N_iterations, parm=c("successTRUE"), method="boot")
 
 ```
 
@@ -142,15 +137,22 @@ ICC_distSpaceship
 
 pred_distSpaceship <- lmer(distSpaceship_fix_rest ~ success + (1|code), data=resting_fixations, REML=FALSE)
 
-pred_distSpaceship.slope <- lmer(distSpaceship_fix_rest ~ success + (1+success|code), data=resting_fixations, REML=FALSE)
-
-anova(pred_distSpaceship, pred_distSpaceship.slope)
+pred_distSpaceship.slope <- lmer(distSpaceship_fix_rest ~ success + (1+success|code), data=resting_fixations, REML=FALSE) # overparameterized
 
 summary(pred_distSpaceship)
 
 ```
 
-Discussing the results: We find a significant fixed effect for success on the distance to the spaceship in resting fixations. This means that in successful runs, participants allocated their resting fixations further away from the spaceship compared to crash runs.  
+Discussing the results: We find a significant fixed effect for success on the distance to the spaceship in resting fixations. This means that in successful runs, participants allocated their resting fixations further away from the spaceship compared to crash runs.
+
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_distSpaceship)
+
+# bootstrap
+confint(pred_distSpaceship, nsim=N_iterations, parm=c("successTRUE"), method="boot")
+
+```
 
 ## Exploring fixations - Fixation duration
 
@@ -170,9 +172,7 @@ plot(fit.gauss)
 
 ```{r random_effects, include=TRUE}
 
-fixDur_explore_null <- glmer(fixation_duration ~ 1 + (1|code), data=exploring_fixations, family = Gamma)
-
-fixDur_explore_null <- lmer(fixation_duration ~ 1 + (1|code), data=exploring_fixations, REML = FALSE)
+fixDur_explore_null <- lmer(fixation_duration.log ~ 1 + (1|code), data=exploring_fixations, REML = FALSE)
 
 summary(fixDur_explore_null)
 
@@ -180,9 +180,7 @@ summary(fixDur_explore_null)
 
 ```{r ICC_fixDur_explore, include=TRUE}
 
-ICC_fixDur_explore <- 40.041 / (40.041 + 2.095)
-
-ICC_fixDur_explore <- 0.03587 / (0.03587 + 0.08455)
+ICC_fixDur_explore <- 1.069 / (1.069 + 1.886)
 
 ICC_fixDur_explore
 
@@ -192,15 +190,24 @@ ICC_fixDur_explore
 
 #pred_fixDur_explore <- glmer(fixation_duration ~ success + (1|code), data=exploring_fixations, family = Gamma)
 
-pred_fixDur_explore <- lmer(fixation_duration ~ success + (1|code), data=exploring_fixations, REML = FALSE)
+pred_fixDur_explore <- lmer(fixation_duration.log ~ success + (1|code), data=exploring_fixations, REML = FALSE)
 
 #pred_fixDur_explore.slope <- glmer(fixation_duration ~ success + (1+success|code), data=exploring_fixations, family = Gamma)
 
-pred_fixDur_explore.slope <- lmer(fixation_duration ~ success + (1+success|code), data=exploring_fixations, REML = FALSE)
+pred_fixDur_explore.slope <- lmer(fixation_duration.log ~ success + (1+success|code), data=exploring_fixations, REML = FALSE)
 
 anova(pred_fixDur_explore, pred_fixDur_explore.slope)
 
 summary(pred_fixDur_explore.slope)
+
+```
+
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_fixDur_explore.slope)
+
+# bootstrap
+confint(pred_fixDur_explore.slope, nsim=N_iterations, parm=c("successTRUE"), method="boot")
 
 ```
 
@@ -227,20 +234,13 @@ plot(fit.gauss)
 
 ```{r random_effects, include=TRUE}
 
-#distObstacle_null <- glmer(distClosestObstacle_fix_explore ~ 1 + (1|code), data=exploring_fixations, family = Gamma)
-
 distObstacle_null <- lmer(distClosestObstacle_fix_explore.log ~ 1 + (1|code), data=exploring_fixations, REML = FALSE)
 
 summary(distObstacle_null)
 
-# glmer: Warning: Model failed to converge with max|grad| = 0.0344018 (tol = 0.002, component 1)Warning: Model is nearly unidentifiable: very large eigenvalue
-# - Rescale variables?
-
 ```
 
 ```{r ICC_distObstacle, include=TRUE}
-
-ICC_distObstacle <- 0.0003747 / (0.0003747 + 0.1436312)
 
 ICC_distObstacle <- 0.08692 / (0.08692 + 0.14374)
 
@@ -248,11 +248,7 @@ ICC_distObstacle
 
 ```
 
-Nearly no variance in the predicted variable is explained by participant code. We will therefore omit including code as random effect.
-
 ```{r distClosestObstacle_fix_explore, include=TRUE}
-
-#pred_distObstacle <- glm(distClosestObstacle_fix_explore ~ success, data=exploring_fixations, family = Gamma)
 
 pred_distObstacle <- lmer(distClosestObstacle_fix_explore.log ~ success + (1|code), data=exploring_fixations, REML = FALSE)
 
@@ -265,6 +261,15 @@ summary(pred_distObstacle.slope)
 ```
 
 Discussing the results: ...
+
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_distObstacle.slope)
+
+# bootstrap
+confint(pred_distObstacle.slope, nsim=N_iterations, parm=c("successTRUE"), method="boot")
+
+```
 
 # Predicting saccades
 
@@ -307,9 +312,6 @@ plot(fit.gauss)
 
 ```{r random_effects, include=TRUE}
 
-#saccAmp_progress_null <- glmer(saccade_amplitude ~ 1 + (1|code), data=progressive_saccades, family = Gamma)
-
-# with log normal
 saccAmp_progress_null <- lmer(saccade_amplitude.log ~ 1 + (1|code), data=progressive_saccades, REML = FALSE)
 
 summary(saccAmp_progress_null)
@@ -318,9 +320,6 @@ summary(saccAmp_progress_null)
 
 ```{r ICC_saccAmp_progress, include=TRUE}
 
-#ICC_saccAmp_progress <- 0.1775 / (0.1775 + 1.8439)
-
-# log normal
 ICC_saccAmp_progress <- 0.3076 / (0.3076 + 2.1804)
 
 ICC_saccAmp_progress
@@ -329,19 +328,22 @@ ICC_saccAmp_progress
 
 ```{r saccade_amplitude_progress, include=TRUE}
 
-pred_saccAmp_progress <- glmer(saccade_amplitude ~ success + (1|code), data=progressive_saccades, family = Gamma)
-
-#pred_saccAmp_progress.slope <- glmer(saccade_amplitude ~ success + (1+success|code), data=progressive_saccades, family = Gamma) # Error: PIRLS loop resulted in NaN value
-
-# log normal
 pred_saccAmp_progress <- lmer(saccade_amplitude.log ~ success + (1|code), data=progressive_saccades, REML = FALSE)
 
 pred_saccAmp_progress.slope <- lmer(saccade_amplitude.log ~ success + (1+success|code), data=progressive_saccades, REML = FALSE)
-#summary(pred_saccAmp_progress.slope)
 
 anova(pred_saccAmp_progress, pred_saccAmp_progress.slope)
 
 summary(pred_saccAmp_progress)
+
+```
+
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_saccAmp_progress)
+
+# bootstrap
+confint(pred_saccAmp_progress, nsim=N_iterations, parm=c("successTRUE"), method="boot")
 
 ```
 
@@ -370,7 +372,6 @@ summary(distClosestObstacle_sacc_progress_null)
 
 ```{r ICC_distObs_progress, include=TRUE}
 
-#ICC_distObs_progress <- 64.56 / (64.56 + 183.31)
 ICC_distObs_progress <- 0.2661 / (0.2661 + 0.8950)
 ICC_distObs_progress
 
@@ -386,6 +387,15 @@ anova(pred_distObstacle_progress, pred_distObstacle_progress.slope)
 
 summary(pred_distObstacle_progress.slope)
 # we loose the fixed effect for success when including the random slope effect for code on success, but the random slope model is the one with the better AIC & BIC
+
+```
+
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_distObstacle_progress.slope)
+
+# bootstrap
+confint(pred_distObstacle_progress.slope, nsim=N_iterations, parm=c("successTRUE"), method="boot")
 
 ```
 
@@ -407,28 +417,36 @@ plot(fit.gauss)
 
 ```{r random_effects, include=TRUE}
 
-saccAmp_regress_null <- lmer(saccade_amplitude ~ 1 + (1|code), data=regressive_saccades, REML = FALSE)
+saccAmp_regress_null <- lmer(saccade_amplitude.log ~ 1 + (1|code), data=regressive_saccades, REML = FALSE)
 summary(saccAmp_regress_null)
 
 ```
 
 ```{r ICC_saccAmp_regress, include=TRUE}
 
-#ICC_saccAmp_regress <- 0.4938 / (0.4938 + 2.2681)
-ICC_saccAmp_regress <- 1.434 / (1.434 + 26.672)
+ICC_saccAmp_regress <- 0.2691 / (0.2691 + 1.7962)
 ICC_saccAmp_regress
 
 ```
 
 ```{r saccade_amplitude_regress, include=TRUE}
 
-pred_saccAmp_regress <- lmer(saccade_amplitude ~ success + (1|code), data=regressive_saccades, REML = FALSE)
+pred_saccAmp_regress <- lmer(saccade_amplitude.log ~ success + (1|code), data=regressive_saccades, REML = FALSE)
 
-pred_saccAmp_regress.slope <- lmer(saccade_amplitude ~ success + (1+success|code), data=regressive_saccades, REML = FALSE) # isSingular
+pred_saccAmp_regress.slope <- lmer(saccade_amplitude.log ~ success + (1+success|code), data=regressive_saccades, REML = FALSE)
 
-anova(pred_saccAmp_regress, pred_saccAmp_regress.slope) # not significantly different 
+anova(pred_saccAmp_regress, pred_saccAmp_regress.slope)
 
 summary(pred_saccAmp_regress)
+
+```
+
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_saccAmp_regress)
+
+# bootstrap
+confint(pred_saccAmp_regress, nsim=N_iterations, parm=c("successTRUE"), method="boot")
 
 ```
 
@@ -473,5 +491,14 @@ anova(pred_distObstacle_regress, pred_distObstacle_regress.slope)
 
 # again, we loose the fixed effect for success when including the random slope effect for code on success, but the random slope model is the one with the better AIC & BIC
 summary(pred_distObstacle_regress.slope)
+
+```
+
+```{r eval=TRUE, cache=TRUE}
+# fixed effects
+fixef(pred_distObstacle_regress.slope)
+
+# bootstrap
+confint(pred_distObstacle_regress.slope, nsim=N_iterations, parm=c("successTRUE"), method="boot")
 
 ```

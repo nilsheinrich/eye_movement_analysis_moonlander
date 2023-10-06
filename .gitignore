@@ -11,7 +11,7 @@ moonlander pilot data
 experimental_data/*
 input_data/*
 eye_data/*
-soc_data
+soc_data/*
 crash_runs
 videos/*
 
