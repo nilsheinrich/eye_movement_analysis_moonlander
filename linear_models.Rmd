@@ -18,6 +18,7 @@ library(latex2exp)
 library(ggplot2)
 library(fitdistrplus)
 library(simr)
+library(arrow)
 
 set.seed(36)
 N_iterations <- 10000
