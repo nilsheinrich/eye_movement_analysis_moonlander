@@ -234,7 +234,7 @@ def pre_process_eye_data(eye_data, spaceship_center_x=972, spaceship_center_y=28
 
     # annotate fixation duration
     eye_data["fixation_duration"] = np.nan
-    eye_data = eye_data.groupby("N_fixation", dropna=False).apply(calc_fixation_duration)
+    eye_data = eye_data.groupby("N_fixation", dropna=False, group_keys=False).apply(calc_fixation_duration)
     eye_data.loc[eye_data.Fixation < 1.0, "fixation_duration"] = np.nan  # have NaN where there is no  fixation
 
     # sum up left and right eye positions to converging eye position in x and y dimension
@@ -280,7 +280,7 @@ def pre_process_eye_data(eye_data, spaceship_center_x=972, spaceship_center_y=28
     eye_data["saccade_direction_x"] = np.nan
     eye_data["saccade_direction_y"] = np.nan
     eye_data["saccade_amplitude_in_pixel"] = np.nan
-    out = eye_data.groupby("N_saccade", dropna=False).apply(calc_saccade_direction)
+    out = eye_data.groupby("N_saccade", dropna=False, group_keys=False).apply(calc_saccade_direction)
 
     # convert saccade amplitude from pixels to visual angle (°)
     out["saccade_amplitude"] = out.saccade_amplitude_in_pixel.apply(lambda x: pixel_to_degree(x))
