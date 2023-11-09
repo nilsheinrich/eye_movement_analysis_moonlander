@@ -834,9 +834,9 @@ soc_data <- within(soc_data, level_difficulty <- relevel(level_difficulty, ref =
 soc_data$input_noise <- as.factor(soc_data$input_noise)
 soc_data <- within(soc_data, input_noise <- relevel(input_noise, ref = "N"))
 
-table(soc_data$SoC)
+#table(soc_data$SoC)
 
-#write_feather(soc_data, "soc_data/Experiment1_SoCData.arrow")
+write_feather(soc_data, "soc_data/Experiment1_SoCData.arrow")
 
 ```
 
@@ -876,3 +876,54 @@ soc_model.slope <- lmer(SoC ~ done + drift*level_difficulty + input_noise + N_co
 # does not converge
 
 ```
+
+
+# Preparing data of 2nd experiment:
+
+```{r soc, include=TRUE}
+
+fixData_exp2 <- read_csv("eye_data/experimental_eye_data_fixations_experiment2.csv")
+saccData_exp2 <- read_csv("eye_data/experimental_eye_data_saccades_experiment2.csv")
+
+# Fixations
+# only considering fixations with duration > 0:
+fixData_exp2 <- fixData_exp2[fixData_exp2$fixation_duration > 0, ]
+# The eye tracker might have flagged single frames as fixations. These would have lasted no time and we will simply filter them out.
+
+# distinguishing exploring and resting fixations
+#x_sp = 972
+#y_sp = 288
+
+# 4° is half of the span of the parafovea. We will use that as the threshold (keeping the spaceship clearly visible vs. not)
+#threshold = 4
+
+#data_fixations$distance_to_spaceship <- sqrt((data_fixations$converging_eye_x_adjusted - x_sp)**2 + (data_fixations$converging_eye_y_adjusted - y_sp)**2)
+
+exploring_fixations_exp2 <- fixData_exp2[fixData_exp2$exploring_fixation == 1, ]
+resting_fixations_exp2 <- fixData_exp2[fixData_exp2$exploring_fixation == 0, ]
+
+###############################################################################
+# Saccades
+saccData_exp2 <- saccData_exp2[saccData_exp2$saccade_amplitude > 0 & saccData_exp2$saccade_amplitude < 27, ]
+# filter saccades that have no saccade amplitude
+saccData_exp2 <- saccData_exp2[!is.na(saccData_exp2$saccade_amplitude),]
+
+progressive_saccades_exp2 <- saccData_exp2[saccData_exp2$saccade_direction_y < 0, ]
+regressive_saccades_exp2 <- saccData_exp2[saccData_exp2$saccade_direction_y > 0, ]
+
+
+# Writing to arrow
+write_feather(exploring_fixations_exp2, "Experiment2_ExploringFixations.arrow")
+write_feather(resting_fixations_exp2, "Experiment2_RestingFixations.arrow")
+
+write_feather(progressive_saccades_exp2, "Experiment2_ProgressiveSaccades.arrow")
+write_feather(regressive_saccades_exp2, "Experiment2_RegressiveSaccades.arrow")
+```
+
+
+
+
+
+
+
+
