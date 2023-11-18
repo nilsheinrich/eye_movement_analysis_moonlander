@@ -638,7 +638,7 @@ def plot_saccade_amplitude_kde(eye_data_none, eye_data_weak, eye_data_strong, le
 
     # plot boundaries:
     lbound = 0
-    ubound = 1000
+    ubound = 50
 
     ax.set_xlim([lbound, ubound])
 

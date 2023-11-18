@@ -200,7 +200,6 @@ def identify_action_goals(data):
     data['N_actionGoal'] = np.nan
     data["N_actionGoal"] = (data["actionGoalOnset"] == 1).cumsum()
     data.loc[data.Fixation < 1.0, "N_actionGoal"] = np.nan  # have NaN where there is no fixation
-
     return data
 
 
