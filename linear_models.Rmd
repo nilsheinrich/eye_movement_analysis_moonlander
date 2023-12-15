@@ -87,6 +87,15 @@ We want to apply our own effects coding for the variables of level_difficulty an
 #data_fixations$input_noise <- as.factor(data_fixations$input_noise)
 #contrasts(data_fixations$input_noise) = contr.treatment(3, base = 2)
 
+# insert column fixation_type with exploring fixation == 0 and resting_fixation == 1
+data_fixations <- data_fixations %>%
+  mutate(fixation_type = case_when(
+    (exploring_fixation == 1) ~ 0,
+    (exploring_fixation == 0) ~ 1,
+    ))
+
+write_feather(data_fixations, "Experiment1_FixationsComplete.arrow")
+
 ```
 
 # Predicting fixations
@@ -874,6 +883,28 @@ soc_model.slope <- lmer(SoC ~ done + drift*level_difficulty + input_noise + N_co
 
 #soc_model.slope2 <- lmer(SoC ~ done + drift*level_difficulty + input_noise + N_consecutive_crash_success + (1+N_consecutive_crash_success|ID),  data = soc_data, REML = FALSE)
 # does not converge
+
+```
+# Predicting done
+
+```{r done, include=TRUE}
+
+done_model <- glmer(done ~ drift * level_difficulty + input_noise + (1|ID),  data = soc_data, family=binomial)
+
+summary(done_model)
+tab_model(done_model)
+
+# predicting outcome given specific levels of covariates
+# input_noise = strong
+predict(done_model, type='response', newdata = data.frame(drift=TRUE, level_difficulty=c("easy", "medium", "hard"), input_noise="S", ID=c(unique(soc_data$ID)))) # do that for all individual participant IDs
+# vs. input_noise = none
+predict(done_model, type='response', newdata = data.frame(drift=TRUE, level_difficulty=c("easy", "medium", "hard"), input_noise="N", ID=c(unique(soc_data$ID)))) # do that for all individual participant IDs
+
+# isolating the effect of drift = TRUE
+predict(done_model, type='response', newdata = data.frame(drift=TRUE, level_difficulty=c("easy", "medium", "hard"), input_noise=c("N", "W", "S"), ID=c(unique(soc_data$ID)))) 
+
+# bootstrap
+confint(done_model, nsim=N_iterations, parm=c("driftTRUE", "driftFALSE", "level_difficultyeasy", "level_difficultymedium", "level_difficultyhard", "input_noiseN", "input_noiseW", "input_noiseS"), method="boot")
 
 ```
 
