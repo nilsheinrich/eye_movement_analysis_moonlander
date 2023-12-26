@@ -29,3 +29,6 @@ decision_instances.ipynb
 running_tests.ipynb
 data_analysis.ipynb
 statsmodeling_decision_instances.ipynb
+
+# rmd files
+situational_analysis_linear_models.Rmd
