@@ -23,3 +23,8 @@ videos/*
 .ipynb_checkpoints
 data_analysis.ipynb
 situational_analysis.ipynb
+plotting_crash_vs_success.ipynb
+insert_N_columns.ipynb
+decision_instances.ipynb
+running_tests.ipynb
+data_analysis.ipynb
