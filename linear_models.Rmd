@@ -104,7 +104,7 @@ Fixations may have served various functions. We will try to account for it and d
 ```{r splitting_fixations, include=TRUE}
 
 # only considering fixations with duration > 0:
-data_fixations <- data_fixations[data_fixations$fixation_duration > 0, ]
+#data_fixations <- data_fixations[data_fixations$fixation_duration > 0.06, ]
 # The eye tracker might have flagged single frames as fixations. These would have lasted no time and we will simply filter them out.
 
 # distinguishing exploring and resting fixations
@@ -118,6 +118,10 @@ data_fixations <- data_fixations[data_fixations$fixation_duration > 0, ]
 
 exploring_fixations <- data_fixations[data_fixations$exploring_fixation == 1, ]
 resting_fixations <- data_fixations[data_fixations$exploring_fixation == 0, ]
+
+# julia arrow data
+write_feather(exploring_fixations, "Experiment1_DistantFixations.arrow")
+write_feather(resting_fixations, "Experiment1_CloseFixations.arrow")
 
 ```
 
@@ -908,10 +912,19 @@ confint(done_model, nsim=N_iterations, parm=c("driftTRUE", "driftFALSE", "level_
 
 ```
 
+# Preparing data of 1st experiment:
+```{r exp1, include=TRUE}
+exploring_fixations_exp1 <- fixData_exp1[fixData_exp1$exploring_fixation == 1, ]
+resting_fixations_exp1 <- fixData_exp1[fixData_exp1$exploring_fixation == 0, ]
+
+# Writing to arrow
+write_feather(exploring_fixations_exp1, "Experiment1_DistantFixations.arrow")
+write_feather(resting_fixations_exp1, "Experiment1_CloseFixations.arrow")
+```
 
 # Preparing data of 2nd experiment:
 
-```{r soc, include=TRUE}
+```{r exp2, include=TRUE}
 
 fixData_exp2 <- read_csv("eye_data/experimental_eye_data_fixations_experiment2.csv")
 saccData_exp2 <- read_csv("eye_data/experimental_eye_data_saccades_experiment2.csv")
