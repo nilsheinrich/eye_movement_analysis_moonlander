@@ -102,6 +102,17 @@ def calc_fixation_duration(fixation_rows):
     return fixation_rows
 
 
+def get_fixation_endpoint(fixation_rows):
+    """
+    Obtaining x- and y-component from last row of passed data
+    """
+
+    fixation_rows.fixation_endpoint_x = fixation_rows.iloc[-1].converging_eye_x_adjusted
+    fixation_rows.fixation_endpoint_y = fixation_rows.iloc[-1].converging_eye_y_adjusted
+
+    return fixation_rows
+
+
 def calc_saccade_direction(saccade_rows):
     """
     Need to be given pandas dataframe grouped by N_saccade.
@@ -243,6 +254,11 @@ def pre_process_eye_data(eye_data, spaceship_center_x=972, spaceship_center_y=28
     # adjust eye-tracking coordinates by fixed factor
     eye_data["converging_eye_x_adjusted"] = eye_data.converging_eye_x + 960
     eye_data["converging_eye_y_adjusted"] = eye_data.converging_eye_y.apply(lambda x: x * (-1) + 540)
+
+    # insert fixation endpoint
+    eye_data["fixation_endpoint_x"] = np.nan
+    eye_data["fixation_endpoint_y"] = np.nan
+    eye_data = eye_data.groupby("N_fixation", dropna=False, group_keys=False).apply(get_fixation_endpoint)
 
     # annotate distance to spaceship
     eye_data["distance_to_spaceship_in_pixel"] = np.sqrt(
