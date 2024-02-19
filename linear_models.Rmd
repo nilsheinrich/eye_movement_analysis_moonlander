@@ -394,6 +394,23 @@ fixef(pred_distSpaceship_explore.slope2)
 confint(pred_distSpaceship_explore.slope2, nsim=N_iterations, parm=c("N_visible_obstacles", "N_visible_drift_tiles", "input_noiseW", "input_noiseS", "N_visible_obstacles:N_visible_drift_tiles"), method="boot")
 
 ```
+## Exploring fixations - Fixation location (distance to closest obstacle in visual degrees)
+
+```{r check_fixDur_explore_fit, include=TRUE}
+
+hist(exploring_fixations$Dist_to_closest_obstacles, breaks=200)
+
+v_log <- log(exploring_fixations$Dist_to_closest_obstacles)
+v_log <- v_log[!is.na(v_log)]
+
+fit.gauss <- fitdist(exploring_fixations$Dist_to_closest_obstacles.log, distr = "norm", method = "mme")
+
+fit.gauss <- fitdist(v_log, distr = "norm", method = "mme")
+
+summary(fit.gauss)
+plot(fit.gauss)
+
+```
 
 # Predicting saccades
 
@@ -914,6 +931,8 @@ confint(done_model, nsim=N_iterations, parm=c("driftTRUE", "driftFALSE", "level_
 
 # Preparing data of 1st experiment:
 ```{r exp1, include=TRUE}
+fixData_exp1 <- read_csv("eye_data/experimental_eye_data_fixations.csv")
+
 exploring_fixations_exp1 <- fixData_exp1[fixData_exp1$exploring_fixation == 1, ]
 resting_fixations_exp1 <- fixData_exp1[fixData_exp1$exploring_fixation == 0, ]
 
