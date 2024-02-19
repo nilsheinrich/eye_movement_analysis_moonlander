@@ -266,8 +266,8 @@ def pre_process_eye_data(eye_data, spaceship_center_x=972, spaceship_center_y=28
         np.power((eye_data.converging_eye_y_adjusted - spaceship_center_y), 2))
     eye_data["distance_to_spaceship"] = eye_data['distance_to_spaceship_in_pixel'].apply(lambda x: pixel_to_degree(x))
 
-    # annotate fixations exploring the scene (further than 4° visual angle from spaceship - outside of parafovea)
-    cond = (eye_data["fixationOnset"] == 1.0) & (eye_data["distance_to_spaceship"] > 4)
+    # annotate fixations exploring the scene (further than 5° visual angle from spaceship - outside of parafovea)
+    cond = (eye_data["fixationOnset"] == 1.0) & (eye_data["distance_to_spaceship"] > 5)
     # have =1 everywhere condition applies and =0 where not
     eye_data["exploring_fixation"] = np.where(cond, 1, 0)
 
