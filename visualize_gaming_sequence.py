@@ -158,9 +158,10 @@ def render_gaming_sequence(input_data, eye_data, start_time, end_time, time_wind
         return obstacles,
 
     ani = animation.FuncAnimation(fig=plt.gcf(), func=animate_frame, frames=len(input_data_), interval=100, blit=True, repeat=False)
+    # interval = 1000/60 for real time
 
     if safe_ani:
-        FFwriter = animation.FFMpegWriter(fps=10)
+        FFwriter = animation.FFMpegWriter(fps=1000/60)  # 1000/60 for real time
         ani.save('videos/animation.mp4', writer=FFwriter)
 
     plt.show()
