@@ -4,16 +4,19 @@ __pycache__
 **/.DS_Store
 
 # plots within plot folder
-plots/*
+plots
 
 # data folders
 moonlander pilot data
-experimental_data/*
-input_data/*
-eye_data/*
-soc_data/*
+experimental_data
+input_data
+eye_data
+soc_data
+computational_model_data
+moonlander_ii_drift_situations
 crash_runs
-videos/*
+videos
+
 
 # R history and data files
 .Rhistory
