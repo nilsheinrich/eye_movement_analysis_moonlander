@@ -74,18 +74,15 @@ def pre_process_input_data(dataframe):
 
     # flagging drift onset (and second drift onset)
     # condition for drift onset
-    cond = (dataframe["visible_drift_tiles"].str.len() != 0) & (
-            dataframe["visible_drift_tiles"].shift(1).str.len() == 0)
+    cond = (dataframe["visible_drift_tiles"].str.len() < dataframe["visible_drift_tiles"].shift(1).str.len())
 
     # have =1 everywhere condition applies and =0 where not
     dataframe["drift_tile_onset"] = np.where(cond, 1, 0)
 
-    # condition for multiple drift tiles on screen
-    cond = (dataframe["visible_drift_tiles"].shift(1).str.len() != 0) & (
-            dataframe["visible_drift_tiles"].str.len() > dataframe["visible_drift_tiles"].shift(1).str.len())
-
-    # have =1 everywhere condition applies and =0 where not
-    dataframe["second_drift_tile_onset"] = np.where(cond, 1, 0)
+    # flag rows when effect of drift sets in
+    if "current_drift" in dataframe.columns:
+        cond = (dataframe.current_drift != 0.0) & (dataframe.current_drift.shift(1) == 0.0)
+        dataframe["drift_effect_onset"] = np.where(cond, 1, 0)
 
     return dataframe
 
@@ -227,7 +224,8 @@ def pre_process_eye_data(eye_data, spaceship_center_x=972, spaceship_center_y=28
 
     # annotate binocular fixations
     eye_data["Fixation"] = eye_data.LeftEyeFixationFlag + eye_data.RightEyeFixationFlag
-    ## eliminate simultaneous blink and fixation (setting fixation to 0)
+
+    # eliminate simultaneous blink and fixation (setting fixation to 0)
     eye_data.Fixation.loc[eye_data.LeftBlink > 0.0] = 0.0
     eye_data.Fixation.loc[eye_data.RightBlink > 0.0] = 0.0
     eye_data.Fixation[eye_data.Fixation > 1] = 1.0
@@ -269,7 +267,7 @@ def pre_process_eye_data(eye_data, spaceship_center_x=972, spaceship_center_y=28
     # annotate fixations exploring the scene (further than 5° visual angle from spaceship - outside of parafovea)
     cond = (eye_data["fixationOnset"] == 1.0) & (eye_data["distance_to_spaceship"] > 5)
     # have =1 everywhere condition applies and =0 where not
-    eye_data["exploring_fixation"] = np.where(cond, 1, 0)
+    eye_data["distant_fixation"] = np.where(cond, 1, 0)
 
     # flag fixations and saccades aiming within game boarders
     # in (edge*scaling, (edge+observation_space_x)*scaling)
