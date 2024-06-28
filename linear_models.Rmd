@@ -943,7 +943,7 @@ write_feather(resting_fixations_exp1, "Experiment1_CloseFixations.arrow")
 
 # Preparing data of 2nd experiment:
 
-```{r exp2, include=TRUE}
+```{r exp2_old, include=TRUE}
 
 fixData_exp2 <- read_csv("eye_data/experimental_eye_data_fixations_experiment2.csv")
 saccData_exp2 <- read_csv("eye_data/experimental_eye_data_saccades_experiment2.csv")
@@ -983,7 +983,71 @@ write_feather(progressive_saccades_exp2, "Experiment2_ProgressiveSaccades.arrow"
 write_feather(regressive_saccades_exp2, "Experiment2_RegressiveSaccades.arrow")
 ```
 
+```{r exp2, include=TRUE}
 
+###################### Fixation Data ######################
+fixData_exp2 <- read_csv("experimental_data_ii/fixations_moonlander_ii.csv")
+
+# only considering fixations with duration > 0:
+#fixData_exp2 <- fixData_exp2[fixData_exp2$fixation_duration > 0, ]
+# The eye tracker might have flagged single frames as fixations. These would have lasted no time and we will simply filter them out.
+
+# distinguishing exploring and resting fixations
+#x_sp = 972
+#y_sp = 288
+
+# 4° is half of the span of the parafovea. We will use that as the threshold (keeping the spaceship clearly visible vs. not)
+#threshold = 4
+
+#data_fixations$distance_to_spaceship <- sqrt((data_fixations$converging_eye_x_adjusted - x_sp)**2 + (data_fixations$converging_eye_y_adjusted - y_sp)**2)
+
+distant_fixations_exp2 <- fixData_exp2[fixData_exp2$distant_fixation == 1, ]
+close_fixations_exp2 <- fixData_exp2[fixData_exp2$distant_fixation == 0, ]
+
+
+# Writing to arrow
+write_feather(distant_fixations_exp2, "experimental_data_ii/Experiment2_DistantFixations.arrow")
+write_feather(close_fixations_exp2, "experimental_data_ii/Experiment2_CloseFixations.arrow")
+
+###################### SoC Data ######################
+socData_exp2 <- read_csv("experimental_data_ii/soc_data_ii.csv")
+
+write_feather(socData_exp2, "Experiment2_SoCData.arrow")
+
+```
+
+```{r exp3, include=TRUE}
+
+###################### Fixation Data ######################
+fixData_exp3 <- read_csv("experimental_data_iii/fixations_moonlander_iii.csv")
+
+# only considering fixations with duration > 0:
+fixData_exp3 <- fixData_exp3[fixData_exp3$fixation_duration > 0, ]
+# The eye tracker might have flagged single frames as fixations. These would have lasted no time and we will simply filter them out.
+
+# distinguishing exploring and resting fixations
+#x_sp = 972
+#y_sp = 288
+
+# 4° is half of the span of the parafovea. We will use that as the threshold (keeping the spaceship clearly visible vs. not)
+#threshold = 4
+
+#data_fixations$distance_to_spaceship <- sqrt((data_fixations$converging_eye_x_adjusted - x_sp)**2 + (data_fixations$converging_eye_y_adjusted - y_sp)**2)
+
+distant_fixations_exp3 <- fixData_exp3[fixData_exp3$distant_fixation == 1, ]
+close_fixations_exp3 <- fixData_exp3[fixData_exp3$distant_fixation == 0, ]
+
+
+# Writing to arrow
+write_feather(distant_fixations_exp3, "Experiment3_DistantFixations.arrow")
+write_feather(close_fixations_exp3, "Experiment3_CloseFixations.arrow")
+
+###################### SoC Data ######################
+socData_exp3 <- read_csv("experimental_data_iii/soc_data_iii.csv")
+
+write_feather(socData_exp3, "Experiment3_SoCData.arrow")
+
+```
 
 
 
